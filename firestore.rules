@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: quizSessions
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required) - The ID of the user who took the quiz
+    //   - score: number (required) - The final score percentage
+    //   - correctAnswers: number (required) - The number of correct answers
+    //   - totalQuestions: number (required) - The total number of questions
+    //   - timeTaken: number (required) - The time taken in seconds
+    //   - categoriesAttempted: list (required) - List of categories attempted
+    //   - createdAt: timestamp (required) - The timestamp when the quiz was completed
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidQuizSession(data) {
+      return hasOnlyAllowedFields(['userId', 'score', 'correctAnswers', 'totalQuestions', 'timeTaken', 'categoriesAttempted', 'questions', 'answers', 'createdAt']) &&
+             data.userId is string && data.userId.size() > 0 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.correctAnswers is number && data.correctAnswers >= 0 &&
+             data.totalQuestions is number && data.totalQuestions > 0 &&
+             data.timeTaken is number && data.timeTaken >= 0 &&
+             data.categoriesAttempted is list && data.categoriesAttempted.size() <= 100 &&
+             (!('questions' in data) || data.questions is string) &&
+             (!('answers' in data) || data.answers is string) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidQuestionPool(data) {
+      return hasOnlyAllowedFields(['pool']) &&
+             data.pool is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /quizSessions/{sessionId} {
+      // Users can only read their own quiz sessions
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can only create quiz sessions for themselves
+      allow create: if isAuthenticated() && 
+                    isValidQuizSession(request.resource.data) && 
+                    request.resource.data.userId == request.auth.uid;
+      
+      // Quiz sessions are immutable once created
+      allow update, delete: if false;
+    }
+
+    match /questionPools/{userId} {
+      // Users can only read/write their own question pools
+      allow read, write: if isOwner(userId) && 
+                         (request.method == 'read' || request.method == 'delete' || isValidQuestionPool(request.resource.data));
+    }
+  }
+}

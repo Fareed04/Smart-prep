@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "QuizSession": {
+      "title": "QuizSession",
+      "description": "Stores the history of a user's quiz session.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who took the quiz."
+        },
+        "score": {
+          "type": "number",
+          "description": "The final score percentage."
+        },
+        "correctAnswers": {
+          "type": "number",
+          "description": "The number of correct answers."
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "The total number of questions."
+        },
+        "timeTaken": {
+          "type": "number",
+          "description": "The time taken in seconds."
+        },
+        "categoriesAttempted": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of categories attempted in the quiz."
+        },
+        "questions": {
+          "type": "string",
+          "description": "JSON stringified array of questions"
+        },
+        "answers": {
+          "type": "string",
+          "description": "JSON stringified record of answers"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the quiz was completed."
+        }
+      },
+      "required": ["userId", "score", "correctAnswers", "totalQuestions", "timeTaken", "categoriesAttempted", "createdAt"]
+    },
+    "QuestionPool": {
+      "title": "QuestionPool",
+      "description": "Stores the extracted question pool for a user.",
+      "type": "object",
+      "properties": {
+        "pool": {
+          "type": "string",
+          "description": "JSON stringified array of questions in the pool."
+        }
+      },
+      "required": ["pool"]
+    }
+  },
+  "firestore": {
+    "/quizSessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/QuizSession"
+      },
+      "description": "Collection of quiz sessions."
+    },
+    "/questionPools/{userId}": {
+      "schema": {
+        "$ref": "#/entities/QuestionPool"
+      },
+      "description": "Collection of question pools, keyed by user ID."
+    }
+  }
+}
