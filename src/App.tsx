@@ -6,7 +6,7 @@ import { QuizScreen } from './components/QuizScreen';
 import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
-import { extractQuestionsFromFiles, generateQuizFromPool } from './lib/gemini';
+import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions } from './lib/gemini';
 import { QuizState, Question } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -134,19 +134,21 @@ export default function App() {
     setErrorMessage(null);
     
     try {
-      const pool = await extractQuestionsFromFiles(files, setProgress);
+      const newQuestions = await extractQuestionsFromFiles(files, setProgress);
       
-      if (pool.length === 0) {
+      if (newQuestions.length === 0) {
         setErrorMessage("Could not extract any questions from the provided files. Please ensure they contain readable text.");
         setAppState('upload');
         return;
       }
 
-      setExtractedPool(pool);
+      // Merge with existing pool and deduplicate
+      const mergedPool = deduplicateQuestions([...extractedPool, ...newQuestions]);
+      setExtractedPool(mergedPool);
       
       // Save to cloud so it's available on other devices
       if (user) {
-        setDoc(doc(db, 'questionPools', user.uid), { pool: JSON.stringify(pool) }).catch(console.error);
+        setDoc(doc(db, 'questionPools', user.uid), { pool: JSON.stringify(mergedPool) }).catch(console.error);
       }
 
       setAppState('ready');

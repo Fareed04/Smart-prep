@@ -169,19 +169,34 @@ export function generateQuizFromPool(pool: Question[]): Question[] {
   }
 
   const finalQuestions: Question[] = [];
+  const remainingPool: Question[] = [];
+
   for (const [category, quota] of Object.entries(quotas)) {
     const available = grouped[category] || [];
     // Shuffle available questions
     const shuffled = [...available].sort(() => Math.random() - 0.5);
     // Take up to the quota
     finalQuestions.push(...shuffled.slice(0, quota));
+    // Keep the rest for filling gaps
+    remainingPool.push(...shuffled.slice(quota));
   }
 
+  // If we don't have 50 questions (because some categories were short),
+  // fill the remaining spots from the rest of the pool
+  if (finalQuestions.length < 50 && remainingPool.length > 0) {
+    const needed = 50 - finalQuestions.length;
+    const shuffledRemaining = [...remainingPool].sort(() => Math.random() - 0.5);
+    finalQuestions.push(...shuffledRemaining.slice(0, needed));
+  }
+
+  // Final shuffle of the 50 questions
+  const fullyShuffled = [...finalQuestions].sort(() => Math.random() - 0.5);
+
   // Assign fresh IDs for the quiz session
-  return finalQuestions.map((q, i) => ({ ...q, id: `q-${i}` }));
+  return fullyShuffled.map((q, i) => ({ ...q, id: `q-${i}` }));
 }
 
-function deduplicateQuestions(questions: any[]): any[] {
+export function deduplicateQuestions(questions: any[]): any[] {
   const seen = new Set<string>();
   return questions.filter((q) => {
     // Normalize question text for comparison

@@ -21,9 +21,16 @@ export function ReadyScreen({ poolSize, onStart, onAddMore, onUploadDifferent }:
           <p className="text-lg text-slate-600 dark:text-slate-400">
             Successfully extracted a pool of <span className="font-semibold text-slate-900 dark:text-white">{poolSize}</span> unique questions.
           </p>
-          <p className="text-slate-500 dark:text-slate-500">
-            Your simulation will consist of 50 questions randomly selected from this pool, to be completed in 60 minutes.
-          </p>
+          {poolSize < 50 ? (
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4 rounded-xl text-amber-800 dark:text-amber-300 text-sm">
+              <p className="font-medium">Pool size is currently {poolSize}/50.</p>
+              <p>You need at least 50 questions for a full simulation. Add more documents to reach the target!</p>
+            </div>
+          ) : (
+            <p className="text-slate-500 dark:text-slate-500">
+              Your simulation will consist of 50 questions randomly selected from this pool, to be completed in 60 minutes.
+            </p>
+          )}
         </div>
 
         <div className="pt-6 space-y-4">

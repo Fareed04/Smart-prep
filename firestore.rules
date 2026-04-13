@@ -74,8 +74,9 @@ service cloud.firestore {
 
     match /questionPools/{userId} {
       // Users can only read/write their own question pools
-      allow read, write: if isOwner(userId) && 
-                         (request.method == 'read' || request.method == 'delete' || isValidQuestionPool(request.resource.data));
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && 
+                     (request.method == 'delete' || isValidQuestionPool(request.resource.data));
     }
   }
 }
