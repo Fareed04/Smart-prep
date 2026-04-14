@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { QuizSession } from '../types';
-import { Play, TrendingUp, Clock, Target, History, AlertCircle } from 'lucide-react';
+import { QuizSession, Question, QuestionProgress } from '../types';
+import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DashboardProps {
   onStartNew: () => void;
   onViewReport: (session: QuizSession) => void;
   errorMessage?: string | null;
+  pool: Question[];
+  progress: Record<string, QuestionProgress>;
 }
 
-export function Dashboard({ onStartNew, onViewReport, errorMessage }: DashboardProps) {
+export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progress }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,6 +48,11 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage }: DashboardP
 
   const totalQuestionsAnswered = sessions.reduce((acc, s) => acc + s.totalQuestions, 0);
 
+  const totalPoolSize = pool.length;
+  const masteredCount = Object.values(progress).filter(p => p.mastered).length;
+  const attemptedCount = Object.keys(progress).length;
+  const masteryPercentage = totalPoolSize > 0 ? Math.round((masteredCount / totalPoolSize) * 100) : 0;
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -69,6 +76,40 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage }: DashboardP
         </div>
       )}
 
+      {/* Mastery Progress */}
+      {totalPoolSize > 0 && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                <Award className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mastery Progress</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Memorize all {totalPoolSize} questions in your pool</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{masteryPercentage}%</div>
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Mastery</div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-blue-600 transition-all duration-1000 ease-out"
+                style={{ width: `${masteryPercentage}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600 dark:text-slate-400 font-medium">{masteredCount} Mastered</span>
+              <span className="text-slate-400 dark:text-slate-500">{attemptedCount} Attempted • {totalPoolSize} Total</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
@@ -82,11 +123,11 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage }: DashboardP
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
           <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-            <History className="w-8 h-8" />
+            <BookOpen className="w-8 h-8" />
           </div>
           <div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Simulations</div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{sessions.length}</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pool Size</div>
+            <div className="text-3xl font-bold text-slate-900 dark:text-white">{totalPoolSize}</div>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
@@ -94,7 +135,7 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage }: DashboardP
             <Target className="w-8 h-8" />
           </div>
           <div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Questions</div>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Answers</div>
             <div className="text-3xl font-bold text-slate-900 dark:text-white">{totalQuestionsAnswered}</div>
           </div>
         </div>

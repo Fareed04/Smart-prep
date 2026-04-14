@@ -1,5 +1,5 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Smart-prep",
+  "description": "A high-velocity exam preparation tool designed to ingest bulk past questions (PDFs, Images, Docs) and generate a timed, interactive simulation of the KPMG Graduate Trainee Assessment.",
   "requestFramePermissions": []
 }

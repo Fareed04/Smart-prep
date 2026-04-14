@@ -7,7 +7,7 @@ import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions } from './lib/gemini';
-import { QuizState, Question } from './types';
+import { QuizState, Question, QuestionProgress } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -25,8 +25,11 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [extractedPool, setExtractedPool] = useState<Question[]>([]);
+  const [questionProgress, setQuestionProgress] = useState<Record<string, QuestionProgress>>({});
+  const [masteryMode, setMasteryMode] = useState(true);
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
@@ -99,14 +102,25 @@ export default function App() {
         // Fetch cloud pool so documents persist across devices (like Desktop -> Mobile)
         try {
           const poolDoc = await getDoc(doc(db, 'questionPools', currentUser.uid));
-          if (poolDoc.exists() && poolDoc.data().pool) {
-            try {
-              const parsedPool = JSON.parse(poolDoc.data().pool);
-              if (parsedPool.length > 0) {
-                setExtractedPool(parsedPool);
+          if (poolDoc.exists()) {
+            const data = poolDoc.data();
+            if (data.pool) {
+              try {
+                const parsedPool = JSON.parse(data.pool);
+                if (parsedPool.length > 0) {
+                  setExtractedPool(parsedPool);
+                }
+              } catch (e) {
+                console.error("Failed to parse pool from cloud", e);
               }
-            } catch (e) {
-              console.error("Failed to parse pool from cloud", e);
+            }
+            if (data.progress) {
+              try {
+                const parsedProgress = JSON.parse(data.progress);
+                setQuestionProgress(parsedProgress);
+              } catch (e) {
+                console.error("Failed to parse progress from cloud", e);
+              }
             }
           }
         } catch (e) {
@@ -131,10 +145,14 @@ export default function App() {
     if (files.length === 0) return;
     setAppState('processing');
     setProgress(0);
+    setProcessingStatus("Initializing...");
     setErrorMessage(null);
     
     try {
-      const newQuestions = await extractQuestionsFromFiles(files, setProgress);
+      const newQuestions = await extractQuestionsFromFiles(files, (p, status) => {
+        setProgress(p);
+        if (status) setProcessingStatus(status);
+      });
       
       if (newQuestions.length === 0) {
         setErrorMessage("Could not extract any questions from the provided files. Please ensure they contain readable text.");
@@ -148,19 +166,22 @@ export default function App() {
       
       // Save to cloud so it's available on other devices
       if (user) {
-        setDoc(doc(db, 'questionPools', user.uid), { pool: JSON.stringify(mergedPool) }).catch(console.error);
+        setDoc(doc(db, 'questionPools', user.uid), { 
+          pool: JSON.stringify(mergedPool),
+          progress: JSON.stringify(questionProgress)
+        }).catch(console.error);
       }
 
       setAppState('ready');
     } catch (error) {
       console.error("Processing failed:", error);
-      setErrorMessage("An error occurred while processing the files. Please try again.");
+      setErrorMessage(error instanceof Error ? `Processing failed: ${error.message}` : "An error occurred while processing the files. Please try again.");
       setAppState('upload');
     }
   };
 
   const handleStartQuiz = () => {
-    const quizQuestions = generateQuizFromPool(extractedPool);
+    const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode);
     setQuizState({
       questions: quizQuestions,
       currentIndex: 0,
@@ -184,13 +205,59 @@ export default function App() {
     setAppState('upload');
   };
 
+  const updateMasteryProgress = (questions: Question[], answers: Record<string, string>) => {
+    const newProgress = { ...questionProgress };
+    
+    questions.forEach(q => {
+      const selected = answers[q.id];
+      const isCorrect = selected === q.answer;
+      
+      const current = newProgress[q.id] || {
+        correctCount: 0,
+        incorrectCount: 0,
+        lastAttemptCorrect: false,
+        mastered: false
+      };
+      
+      if (isCorrect) {
+        current.correctCount += 1;
+      } else {
+        current.incorrectCount += 1;
+      }
+      
+      current.lastAttemptCorrect = isCorrect;
+      
+      // Mastery logic: Correct at least twice and last attempt was correct
+      if (current.correctCount >= 2 && isCorrect) {
+        current.mastered = true;
+      } else if (!isCorrect) {
+        // If they get it wrong, they lose mastery
+        current.mastered = false;
+      }
+      
+      newProgress[q.id] = current;
+    });
+    
+    setQuestionProgress(newProgress);
+    if (user) {
+      setDoc(doc(db, 'questionPools', user.uid), { 
+        pool: JSON.stringify(extractedPool),
+        progress: JSON.stringify(newProgress)
+      }).catch(console.error);
+    }
+  };
+
   const handleUploadDifferent = () => {
     setFiles([]);
     setExtractedPool([]);
+    setQuestionProgress({});
     
     // Clear from cloud
     if (user) {
-      setDoc(doc(db, 'questionPools', user.uid), { pool: "[]" }).catch(console.error);
+      setDoc(doc(db, 'questionPools', user.uid), { 
+        pool: "[]",
+        progress: "{}"
+      }).catch(console.error);
     }
 
     setErrorMessage(null);
@@ -296,13 +363,15 @@ export default function App() {
             }}
             onViewReport={handleViewReport}
             errorMessage={errorMessage}
+            pool={extractedPool}
+            progress={questionProgress}
           />
         )}
         {appState === 'upload' && (
           <UploadScreen files={files} setFiles={setFiles} onStartProcessing={handleStartProcessing} errorMessage={errorMessage} />
         )}
         {appState === 'processing' && (
-          <ProcessingScreen progress={progress} />
+          <ProcessingScreen progress={progress} status={processingStatus} />
         )}
         {appState === 'ready' && (
           <ReadyScreen 
@@ -310,6 +379,8 @@ export default function App() {
             onStart={handleStartQuiz} 
             onAddMore={handleAddMore}
             onUploadDifferent={handleUploadDifferent} 
+            masteryMode={masteryMode}
+            setMasteryMode={setMasteryMode}
           />
         )}
         {appState === 'quiz' && (
@@ -317,6 +388,7 @@ export default function App() {
             state={quizState} 
             setState={setQuizState} 
             onFinish={() => {
+              updateMasteryProgress(quizState.questions, quizState.answers);
               setQuizState(prev => ({ ...prev, isFinished: true }));
               setAppState('report');
             }} 

@@ -1,11 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Question } from "../types";
+import { Question, QuestionProgress } from "../types";
 import * as mammoth from "mammoth";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const PROMPT = `Act as a Senior Data Scientist and GMAT Tutor.
-Data Processing: Analyze the uploaded files. Extract all unique questions. 
+Data Processing: Analyze the uploaded files. Extract unique questions. 
+
+IMPORTANT: Extract a MAXIMUM of 30 high-quality unique questions per file. If the file has more, only take the first 30. This ensures the output does not get cut off.
 
 CRITICAL RULES:
 1. If a question relies on an image, graph, or diagram that is not visible in the text, SKIP IT entirely. Do not include it.
@@ -26,115 +28,228 @@ Explanation Style: Use "First Principles" thinking. Explain why the wrong option
 
 Convert these files into a JSON list of questions.`;
 
-async function processWithGemini(parts: any[]): Promise<any[]> {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: {
-      parts: [...parts, { text: PROMPT }],
-    },
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            question: { type: Type.STRING, description: "The question text, including explicit instructions for verbal questions" },
-            options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of multiple choice options" },
-            answer: { type: Type.STRING, description: "The correct option exactly as it appears in the options list" },
-            explanation: { type: Type.STRING, description: "Detailed explanation including 'Work Smarter' tips and context notes" },
-            category: { type: Type.STRING, description: "Strictly one of: Numerical Reasoning, Data Analysis, Reading Comprehension, Sentence Correction, Antonyms/Synonyms, Critical Reasoning, Current Affairs" },
-          },
-          required: ["question", "options", "answer", "explanation", "category"],
-        },
-      },
-    },
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      console.error(`[Timeout] ${message} after ${ms}ms`);
+      reject(new Error(message));
+    }, ms);
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timer));
   });
-
-  const jsonStr = response.text?.trim() || "[]";
-  return JSON.parse(jsonStr);
 }
 
-export async function extractQuestionsFromFiles(files: File[], onProgress?: (progress: number) => void): Promise<Question[]> {
-  const allQuestions: Question[] = [];
-  const batchSize = 3; // Small batch size to avoid payload limits
+async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
+  const MAX_RETRIES = 2;
   
-  // Filter out empty files which can cause "The document has no pages" errors
-  const validFiles = files.filter(f => f.size > 0);
+  try {
+    const apiPromise = ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: {
+        parts: [...parts, { text: PROMPT }],
+      },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 16384, // Increased to handle more questions
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING, description: "The question text, including explicit instructions for verbal questions" },
+              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of multiple choice options" },
+              answer: { type: Type.STRING, description: "The correct option exactly as it appears in the options list" },
+              explanation: { type: Type.STRING, description: "Detailed explanation including 'Work Smarter' tips and context notes" },
+              category: { type: Type.STRING, description: "Strictly one of: Numerical Reasoning, Data Analysis, Reading Comprehension, Sentence Correction, Antonyms/Synonyms, Critical Reasoning, Current Affairs" },
+            },
+            required: ["question", "options", "answer", "explanation", "category"],
+          },
+        },
+      },
+    });
+
+    const response = await withTimeout(apiPromise, 300000, "Gemini API timeout");
+    let jsonStr = response.text?.trim() || "[]";
+    
+    // Attempt to repair truncated JSON if it looks like an array that didn't close
+    if (jsonStr.startsWith('[') && !jsonStr.endsWith(']')) {
+      console.warn("[Gemini] Truncated JSON detected. Attempting repair...");
+      // Find the last complete object in the array
+      const lastObjectEnd = jsonStr.lastIndexOf('}');
+      if (lastObjectEnd !== -1) {
+        jsonStr = jsonStr.substring(0, lastObjectEnd + 1) + ']';
+      } else {
+        jsonStr += ']';
+      }
+    }
+    
+    try {
+      return JSON.parse(jsonStr);
+    } catch (parseErr) {
+      console.error("[Gemini] JSON Parse Error after repair attempt:", parseErr);
+      console.log("[Gemini] Raw response snippet:", jsonStr.substring(jsonStr.length - 100));
+      throw parseErr;
+    }
+  } catch (err: any) {
+    const isNetworkError = err?.message?.includes("Rpc failed") || err?.message?.includes("xhr error") || err?.message?.includes("fetch");
+    
+    if (isNetworkError && retryCount < MAX_RETRIES) {
+      const delay = Math.pow(2, retryCount) * 2000;
+      console.log(`Network error detected. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return processWithGemini(parts, retryCount + 1);
+    }
+    throw err;
+  }
+}
+
+export async function extractQuestionsFromFiles(files: File[], onProgress?: (progress: number, status?: string) => void): Promise<Question[]> {
+  const allQuestions: Question[] = [];
+  const batchSize = 1; // Process one file at a time to avoid payload limits and timeouts
+  
+  // Filter out empty files and files that are too large for the proxy (approx 15MB limit)
+  const validFiles = files.filter(f => {
+    if (f.size === 0) return false;
+    if (f.size > 15 * 1024 * 1024) {
+      console.warn(`File ${f.name} is too large (>15MB) and may fail. Skipping.`);
+      return false;
+    }
+    // Basic check for very small PDFs which are often invalid
+    if (f.name.toLowerCase().endsWith('.pdf') && f.size < 100) {
+      console.warn(`File ${f.name} is too small to be a valid PDF. Skipping.`);
+      return false;
+    }
+    return true;
+  });
   
   if (validFiles.length === 0) {
+    if (files.some(f => f.size > 15 * 1024 * 1024)) {
+      throw new Error("The files you uploaded are too large (>15MB). Please compress them or split them into smaller parts.");
+    }
     console.warn("No valid files to process (files might be empty).");
     return [];
   }
   
   for (let i = 0; i < validFiles.length; i += batchSize) {
     const batch = validFiles.slice(i, i + batchSize);
+    const currentFile = batch[0];
     
+    if (onProgress) {
+      // Show progress before reading files
+      const p = Math.min(90, Math.round((i / validFiles.length) * 100) + 5);
+      onProgress(p, `Reading ${currentFile.name}...`);
+      // Yield to the browser to allow UI to update before potentially heavy operations
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     const parts = await Promise.all(
       batch.map(async (file) => {
         const fileName = file.name.toLowerCase();
+        console.log(`[Gemini] Starting processing for: ${fileName} (${(file.size / 1024).toFixed(2)} KB)`);
         
         if (fileName.endsWith('.docx')) {
           try {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
+            if (onProgress) onProgress(Math.min(90, Math.round((i / validFiles.length) * 100) + 5), `Extracting text from ${fileName}...`);
+            console.log(`[Gemini] Reading docx: ${fileName}`);
+            const arrayBuffer = await withTimeout(file.arrayBuffer(), 20000, "arrayBuffer timeout");
+            console.log(`[Gemini] Extracting text from docx: ${fileName}`);
+            const result = await withTimeout(mammoth.extractRawText({ arrayBuffer }), 45000, "mammoth timeout");
+            console.log(`[Gemini] Finished docx extraction: ${fileName}`);
             return { text: result.value || "Empty document" };
-          } catch (err) {
-            console.error("Error parsing docx", err);
-            return { text: "Error reading document" };
+          } catch (err: any) {
+            console.error(`[Gemini] Error parsing docx: ${fileName}`, err);
+            return { text: `Error reading document: ${err.message}` };
           }
         }
 
         if (fileName.endsWith('.txt')) {
-          const text = await file.text();
-          return { text: text || "Empty document" };
-        }
-
-        // Gemini doesn't support .doc natively, and mammoth doesn't either.
-        // We will try to extract text directly, which might have artifacts, but prevents "no pages" error.
-        if (fileName.endsWith('.doc')) {
           try {
-            const text = await file.text();
-            return { text: text.substring(0, 5000) || "Empty document" };
-          } catch (err) {
-            return { text: "Error reading .doc file" };
+            console.log(`[Gemini] Reading txt: ${fileName}`);
+            const text = await withTimeout(file.text(), 15000, "text timeout");
+            return { text: text || "Empty document" };
+          } catch (err: any) {
+            console.error(`[Gemini] Error reading txt: ${fileName}`, err);
+            return { text: `Error reading txt: ${err.message}` };
           }
         }
 
-        const base64 = await fileToBase64(file);
-        
-        // Fallback for missing mime types
-        let mimeType = file.type;
-        if (!mimeType) {
-          if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
-          else if (fileName.endsWith('.png')) mimeType = 'image/png';
-          else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
-          else mimeType = 'text/plain';
+        if (fileName.endsWith('.doc')) {
+          console.warn(`[Gemini] Legacy .doc file detected: ${fileName}. This format is not fully supported.`);
+          return { text: `Error: .doc files are not supported. Please save as .docx or .pdf and try again.` };
         }
 
-        return {
-          inlineData: {
-            mimeType,
-            data: base64.split(",")[1],
-          },
-        };
+        try {
+          if (onProgress) onProgress(Math.min(90, Math.round((i / validFiles.length) * 100) + 5), `Preparing ${fileName} for AI...`);
+          console.log(`[Gemini] Converting to base64: ${fileName} (Type: ${file.type})`);
+          const base64 = await withTimeout(fileToBase64(file), 60000, "base64 timeout");
+          console.log(`[Gemini] Finished base64 conversion: ${fileName}`);
+          
+          // Fallback for missing mime types
+          let mimeType = file.type;
+          if (!mimeType) {
+            if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
+            else if (fileName.endsWith('.png')) mimeType = 'image/png';
+            else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else mimeType = 'text/plain';
+          }
+
+          return {
+            inlineData: {
+              mimeType,
+              data: base64.split(",")[1],
+            },
+          };
+        } catch (err: any) {
+          console.error(`[Gemini] Error converting to base64: ${fileName}`, err);
+          return { text: `Error converting file: ${err.message}` };
+        }
       })
     );
 
     try {
+      if (onProgress) onProgress(Math.min(90, Math.round((i / validFiles.length) * 100) + 5), `AI is analyzing ${currentFile.name}...`);
+      console.log(`[Gemini] Sending batch to AI...`);
       const parsed = await processWithGemini(parts);
+      console.log(`[Gemini] AI response received. Extracted ${parsed.length} questions.`);
       allQuestions.push(...parsed);
     } catch (e: any) {
       console.error("Failed to process batch", e);
+      
+      // Handle specific "no pages" error from Gemini
+      if (e.message?.includes("The document has no pages")) {
+        console.warn(`[Gemini] Skipping ${currentFile.name}: Document has no pages or is unreadable by AI.`);
+        if (onProgress) onProgress(undefined as any, `Skipping ${currentFile.name} (unreadable format)...`);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Let user see the skip message
+        continue; // Skip this file and move to the next
+      }
+
+      let anySuccess = false;
       // If batch fails, try processing files individually to isolate the bad file
       console.log("Retrying files individually...");
       for (const part of parts) {
         try {
           const parsed = await processWithGemini([part]);
           allQuestions.push(...parsed);
-        } catch (err) {
+          anySuccess = true;
+        } catch (err: any) {
           console.error("Failed to process individual file", err);
+          
+          // Handle specific "no pages" error during individual retry
+          if (err.message?.includes("The document has no pages")) {
+            console.warn(`[Gemini] Skipping file: Document has no pages or is unreadable.`);
+            continue;
+          }
+
+          // If we are processing one file at a time and it fails, throw the error
+          if (batchSize === 1) {
+            throw new Error(`Failed to process file: ${err.message}`);
+          }
         }
+      }
+      if (!anySuccess && batchSize > 1) {
+        throw new Error(`Failed to process files: ${e.message}`);
       }
     }
     
@@ -150,7 +265,32 @@ export async function extractQuestionsFromFiles(files: File[], onProgress?: (pro
   return uniqueQuestions.map((q, i) => ({ ...q, id: `pool-${i}` }));
 }
 
-export function generateQuizFromPool(pool: Question[]): Question[] {
+export function generateQuizFromPool(
+  pool: Question[], 
+  progress: Record<string, QuestionProgress> = {},
+  masteryMode: boolean = false
+): Question[] {
+  // If mastery mode, we prioritize questions that are NOT mastered.
+  let workingPool = [...pool];
+  
+  if (masteryMode) {
+    // Sort by mastery status (unmastered first) and then by least correct answers
+    workingPool.sort((a, b) => {
+      const pA = progress[a.id];
+      const pB = progress[b.id];
+      
+      const masteredA = pA?.mastered ? 1 : 0;
+      const masteredB = pB?.mastered ? 1 : 0;
+      
+      if (masteredA !== masteredB) return masteredA - masteredB;
+      
+      const correctA = pA?.correctCount || 0;
+      const correctB = pB?.correctCount || 0;
+      
+      return correctA - correctB;
+    });
+  }
+
   // Apply quotas to get exactly 50 questions with the requested breakdown
   const quotas: Record<string, number> = {
     "Numerical Reasoning": 15,
@@ -163,7 +303,7 @@ export function generateQuizFromPool(pool: Question[]): Question[] {
   };
 
   const grouped: Record<string, Question[]> = {};
-  for (const q of pool) {
+  for (const q of workingPool) {
     if (!grouped[q.category]) grouped[q.category] = [];
     grouped[q.category].push(q);
   }
@@ -173,27 +313,37 @@ export function generateQuizFromPool(pool: Question[]): Question[] {
 
   for (const [category, quota] of Object.entries(quotas)) {
     const available = grouped[category] || [];
-    // Shuffle available questions
-    const shuffled = [...available].sort(() => Math.random() - 0.5);
-    // Take up to the quota
-    finalQuestions.push(...shuffled.slice(0, quota));
-    // Keep the rest for filling gaps
-    remainingPool.push(...shuffled.slice(quota));
+    
+    // If mastery mode, we already sorted workingPool, so we should maintain that order within categories
+    // but maybe add a little randomness among similar mastery levels
+    const candidates = masteryMode 
+      ? available.slice(0, quota * 2).sort(() => Math.random() - 0.5).slice(0, quota)
+      : [...available].sort(() => Math.random() - 0.5).slice(0, quota);
+
+    finalQuestions.push(...candidates);
+    
+    // Keep track of what's left
+    const candidateIds = new Set(candidates.map(c => c.id));
+    remainingPool.push(...available.filter(a => !candidateIds.has(a.id)));
   }
 
   // If we don't have 50 questions (because some categories were short),
   // fill the remaining spots from the rest of the pool
   if (finalQuestions.length < 50 && remainingPool.length > 0) {
     const needed = 50 - finalQuestions.length;
-    const shuffledRemaining = [...remainingPool].sort(() => Math.random() - 0.5);
-    finalQuestions.push(...shuffledRemaining.slice(0, needed));
+    // In mastery mode, remainingPool is also somewhat ordered by mastery
+    const extra = masteryMode
+      ? remainingPool.slice(0, needed)
+      : [...remainingPool].sort(() => Math.random() - 0.5).slice(0, needed);
+      
+    finalQuestions.push(...extra);
   }
 
-  // Final shuffle of the 50 questions
+  // Final shuffle of the 50 questions for the actual test experience
   const fullyShuffled = [...finalQuestions].sort(() => Math.random() - 0.5);
 
   // Assign fresh IDs for the quiz session
-  return fullyShuffled.map((q, i) => ({ ...q, id: `q-${i}` }));
+  return fullyShuffled.map((q) => ({ ...q })); // Keep original IDs for progress tracking
 }
 
 export function deduplicateQuestions(questions: any[]): any[] {

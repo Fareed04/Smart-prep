@@ -64,6 +64,9 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Supports PDF, PNG, JPG, DOCX (Max 40 files)
             </p>
+            <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 max-w-xs mx-auto">
+              Note: Very large PDFs (100+ pages) may cause timeouts. If processing fails, try splitting your files.
+            </p>
           </div>
         </div>
       </div>

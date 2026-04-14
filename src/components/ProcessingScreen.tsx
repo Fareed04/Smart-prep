@@ -3,9 +3,10 @@ import { Loader2 } from 'lucide-react';
 
 interface ProcessingScreenProps {
   progress: number;
+  status?: string;
 }
 
-export function ProcessingScreen({ progress }: ProcessingScreenProps) {
+export function ProcessingScreen({ progress, status }: ProcessingScreenProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-in fade-in duration-500">
       <div className="relative">
@@ -18,7 +19,7 @@ export function ProcessingScreen({ progress }: ProcessingScreenProps) {
       <div className="text-center space-y-3 max-w-md">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">The AI Brain is Working</h2>
         <p className="text-slate-600 dark:text-slate-400">
-          Extracting questions, applying OCR, deduplicating, and updating facts to 2026 standards...
+          {status || "Extracting questions, applying OCR, deduplicating, and updating facts to 2026 standards..."}
         </p>
       </div>
 

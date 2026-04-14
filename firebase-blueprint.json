@@ -56,6 +56,10 @@
         "pool": {
           "type": "string",
           "description": "JSON stringified array of questions in the pool."
+        },
+        "progress": {
+          "type": "string",
+          "description": "JSON stringified record of questionId -> QuestionProgress"
         }
       },
       "required": ["pool"]

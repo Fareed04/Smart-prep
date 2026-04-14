@@ -7,6 +7,13 @@ export interface Question {
   category: string;
 }
 
+export interface QuestionProgress {
+  correctCount: number;
+  incorrectCount: number;
+  lastAttemptCorrect: boolean;
+  mastered: boolean;
+}
+
 export interface QuizState {
   questions: Question[];
   currentIndex: number;
