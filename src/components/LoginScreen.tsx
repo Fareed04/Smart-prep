@@ -6,20 +6,22 @@ export function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (isLoading) return;
     setIsLoading(true);
     setError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      // Ignore errors where the user intentionally closed the popup
-      if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
-        setError("Failed to sign in. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Call signInWithGoogle immediately to preserve user gesture
+    signInWithGoogle()
+      .catch((err: any) => {
+        // Ignore errors where the user intentionally closed the popup
+        if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+          setError(err?.message || "Failed to sign in. Please try again.");
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   return (

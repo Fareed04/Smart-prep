@@ -14,8 +14,15 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
+
+  const handleFinish = React.useCallback(() => {
+    if (isFinishing) return;
+    setIsFinishing(true);
+    onFinish();
+  }, [isFinishing, onFinish]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -23,7 +30,7 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
         setState((prev) => {
           if (prev.timeRemaining <= 0) {
             clearInterval(timer);
-            onFinish();
+            handleFinish();
             return prev;
           }
           return { ...prev, timeRemaining: prev.timeRemaining - 1 };
@@ -31,7 +38,7 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [onFinish, setState, isPaused]);
+  }, [handleFinish, setState, isPaused]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -40,7 +47,7 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
   };
 
   const handleOptionSelect = (option: string) => {
-    if (isAnswerChecked || isPaused) return;
+    if (isAnswerChecked || isPaused || isFinishing) return;
     setState((prev) => ({
       ...prev,
       answers: { ...prev.answers, [currentQuestion.id]: option },
@@ -48,17 +55,18 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
   };
 
   const handleCheckAnswer = () => {
-    if (!state.answers[currentQuestion.id] || isPaused) return;
+    if (!state.answers[currentQuestion.id] || isPaused || isFinishing) return;
     setIsAnswerChecked(true);
   };
 
   const handleNext = () => {
+    if (isFinishing) return;
     setShowExplanation(false);
     setIsAnswerChecked(false);
     if (state.currentIndex < state.questions.length - 1) {
       setState((prev) => ({ ...prev, currentIndex: prev.currentIndex + 1 }));
     } else {
-      onFinish();
+      handleFinish();
     }
   };
 

@@ -58,7 +58,7 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progre
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {auth.currentUser?.displayName?.split(' ')[0] || 'User'}</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your KPMG assessment prep?</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your Big 4 assessment prep?</p>
         </div>
         <button
           onClick={onStartNew}
@@ -169,8 +169,15 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progre
                 className="w-full text-left p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 group"
               >
                 <div className="space-y-1">
-                  <div className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {format(session.createdAt, 'MMM d, yyyy • h:mm a')}
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {format(session.createdAt, 'MMM d, yyyy • h:mm a')}
+                    </span>
+                    {session.company && (
+                      <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-md uppercase tracking-wider">
+                        {session.company}
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
                     {session.categoriesAttempted.map(cat => (

@@ -17,6 +17,7 @@ export const signInWithGoogle = async () => {
       return;
     }
     console.error("Error signing in with Google", error);
+    throw error;
   }
 };
 

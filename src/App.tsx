@@ -30,6 +30,8 @@ export default function App() {
   const [extractedPool, setExtractedPool] = useState<Question[]>([]);
   const [questionProgress, setQuestionProgress] = useState<Record<string, QuestionProgress>>({});
   const [masteryMode, setMasteryMode] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
@@ -141,7 +143,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleStartProcessing = async () => {
+  const handleStartProcessing = React.useCallback(async (company: string) => {
     if (files.length === 0) return;
     setAppState('processing');
     setProgress(0);
@@ -152,7 +154,7 @@ export default function App() {
       const newQuestions = await extractQuestionsFromFiles(files, (p, status) => {
         setProgress(p);
         if (status) setProcessingStatus(status);
-      });
+      }, company);
       
       if (newQuestions.length === 0) {
         setErrorMessage("Could not extract any questions from the provided files. Please ensure they contain readable text.");
@@ -178,10 +180,10 @@ export default function App() {
       setErrorMessage(error instanceof Error ? `Processing failed: ${error.message}` : "An error occurred while processing the files. Please try again.");
       setAppState('upload');
     }
-  };
+  }, [files, extractedPool, questionProgress, user]);
 
-  const handleStartQuiz = () => {
-    const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode);
+  const handleStartQuiz = React.useCallback(() => {
+    const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory);
     setQuizState({
       questions: quizQuestions,
       currentIndex: 0,
@@ -191,21 +193,21 @@ export default function App() {
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  };
+  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory]);
 
-  const handleRestart = () => {
+  const handleRestart = React.useCallback(() => {
     setErrorMessage(null);
     setIsViewingPastReport(false);
     setAppState('ready');
-  };
+  }, []);
 
-  const handleAddMore = () => {
+  const handleAddMore = React.useCallback(() => {
     setErrorMessage(null);
     setIsViewingPastReport(false);
     setAppState('upload');
-  };
+  }, []);
 
-  const updateMasteryProgress = (questions: Question[], answers: Record<string, string>) => {
+  const updateMasteryProgress = React.useCallback((questions: Question[], answers: Record<string, string>) => {
     const newProgress = { ...questionProgress };
     
     questions.forEach(q => {
@@ -245,9 +247,15 @@ export default function App() {
         progress: JSON.stringify(newProgress)
       }).catch(console.error);
     }
-  };
+  }, [questionProgress, user, extractedPool]);
 
-  const handleUploadDifferent = () => {
+  const handleFinishQuiz = React.useCallback(() => {
+    updateMasteryProgress(quizState.questions, quizState.answers);
+    setQuizState(prev => ({ ...prev, isFinished: true }));
+    setAppState('report');
+  }, [quizState.questions, quizState.answers, updateMasteryProgress]);
+
+  const handleUploadDifferent = React.useCallback(() => {
     setFiles([]);
     setExtractedPool([]);
     setQuestionProgress({});
@@ -263,16 +271,16 @@ export default function App() {
     setErrorMessage(null);
     setIsViewingPastReport(false);
     setAppState('upload');
-  };
+  }, [user]);
 
-  const handleDashboard = () => {
+  const handleDashboard = React.useCallback(() => {
     setFiles([]);
     setErrorMessage(null);
     setIsViewingPastReport(false);
     setAppState('dashboard');
-  };
+  }, []);
 
-  const handleViewReport = (session: any) => {
+  const handleViewReport = React.useCallback((session: any) => {
     if (session.questions && session.answers) {
       try {
         const parsedQuestions = JSON.parse(session.questions);
@@ -293,7 +301,7 @@ export default function App() {
     } else {
       setErrorMessage("Full report data is not available for this older session.");
     }
-  };
+  }, []);
 
   if (!isAuthReady) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">Loading...</div>;
@@ -375,23 +383,23 @@ export default function App() {
         )}
         {appState === 'ready' && (
           <ReadyScreen 
-            poolSize={extractedPool.length} 
+            pool={extractedPool}
             onStart={handleStartQuiz} 
             onAddMore={handleAddMore}
             onUploadDifferent={handleUploadDifferent} 
             masteryMode={masteryMode}
             setMasteryMode={setMasteryMode}
+            selectedCompany={selectedCompany}
+            setSelectedCompany={setSelectedCompany}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
           />
         )}
         {appState === 'quiz' && (
           <QuizScreen 
             state={quizState} 
             setState={setQuizState} 
-            onFinish={() => {
-              updateMasteryProgress(quizState.questions, quizState.answers);
-              setQuizState(prev => ({ ...prev, isFinished: true }));
-              setAppState('report');
-            }} 
+            onFinish={handleFinishQuiz} 
           />
         )}
         {appState === 'report' && (
@@ -400,6 +408,7 @@ export default function App() {
             onRestart={handleRestart} 
             onDashboard={handleDashboard} 
             isViewingPastReport={isViewingPastReport}
+            company={selectedCompany}
           />
         )}
       </main>

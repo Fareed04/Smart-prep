@@ -5,6 +5,7 @@ export interface Question {
   answer: string;
   explanation: string;
   category: string;
+  company?: string;
 }
 
 export interface QuestionProgress {
@@ -30,6 +31,7 @@ export interface QuizSession {
   totalQuestions: number;
   timeTaken: number;
   categoriesAttempted: string[];
+  company?: string;
   questions?: string;
   answers?: string;
   createdAt: Date;

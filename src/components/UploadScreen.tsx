@@ -6,11 +6,14 @@ import { cn } from '../lib/utils';
 interface UploadScreenProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  onStartProcessing: () => void;
+  onStartProcessing: (company: string) => void;
   errorMessage?: string | null;
 }
 
+const COMPANIES = ['KPMG', 'EY', 'PwC', 'Deloitte', 'Other'];
+
 export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage }: UploadScreenProps) {
+  const [selectedCompany, setSelectedCompany] = React.useState('KPMG');
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 40)); // Max 40 files
   }, [setFiles]);
@@ -34,8 +37,30 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">KPMG Smart-Prep</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-400">Upload past questions (PDFs, Images, Word Docs) to generate your AI-powered simulation.</p>
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Big 4 Smart-Prep</h1>
+        <p className="text-lg text-slate-600 dark:text-slate-400">Upload past questions to generate your AI-powered simulation.</p>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          Which company are these files for?
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {COMPANIES.map((company) => (
+            <button
+              key={company}
+              onClick={() => setSelectedCompany(company)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2",
+                selectedCompany === company
+                  ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
+                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500"
+              )}
+            >
+              {company}
+            </button>
+          ))}
+        </div>
       </div>
 
       {errorMessage && (
@@ -76,7 +101,7 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Selected Files ({files.length}/40)</h3>
             <button
-              onClick={onStartProcessing}
+              onClick={() => onStartProcessing(selectedCompany)}
               className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
             >
               Process & Start Simulation

@@ -52,8 +52,9 @@ service cloud.firestore {
     }
 
     function isValidQuestionPool(data) {
-      return hasOnlyAllowedFields(['pool']) &&
-             data.pool is string;
+      return hasOnlyAllowedFields(['pool', 'progress']) &&
+             data.pool is string &&
+             (!('progress' in data) || data.progress is string);
     }
 
     // ===============================================================

@@ -10,14 +10,16 @@ interface ReportScreenProps {
   onRestart: () => void;
   onDashboard: () => void;
   isViewingPastReport?: boolean;
+  company?: string;
 }
 
-export function ReportScreen({ state, onRestart, onDashboard, isViewingPastReport = false }: ReportScreenProps) {
+export function ReportScreen({ state, onRestart, onDashboard, isViewingPastReport = false, company }: ReportScreenProps) {
   const totalQuestions = state.questions.length;
   const correctAnswers = state.questions.filter(q => state.answers[q.id] === q.answer).length;
   const score = Math.round((correctAnswers / totalQuestions) * 100);
   const timeTaken = (60 * 60) - state.timeRemaining;
   const [isSaved, setIsSaved] = useState(isViewingPastReport);
+  const saveInProgress = React.useRef(false);
 
   useEffect(() => {
     if (score >= 70 && !isViewingPastReport) {
@@ -30,8 +32,9 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
 
     // Save to Firestore
     const saveSession = async () => {
-      if (!auth.currentUser || isSaved || isViewingPastReport) return;
+      if (!auth.currentUser || isSaved || isViewingPastReport || saveInProgress.current) return;
       
+      saveInProgress.current = true;
       try {
         const categories = Array.from(new Set(state.questions.map(q => q.category)));
         
@@ -42,6 +45,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           totalQuestions,
           timeTaken,
           categoriesAttempted: categories,
+          company: company || 'All',
           questions: JSON.stringify(state.questions),
           answers: JSON.stringify(state.answers),
           createdAt: serverTimestamp()
@@ -49,11 +53,12 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         setIsSaved(true);
       } catch (error) {
         console.error("Error saving quiz session:", error);
+        saveInProgress.current = false;
       }
     };
 
     saveSession();
-  }, [score, correctAnswers, totalQuestions, timeTaken, state.questions, isSaved]);
+  }, [score, correctAnswers, totalQuestions, timeTaken, state.questions, isSaved, isViewingPastReport, company]);
 
   // Calculate weakness report
   const categoryStats = state.questions.reduce((acc, q) => {
@@ -83,7 +88,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           <Trophy className="w-10 h-10" />
         </div>
         <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Simulation Complete</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the KPMG assessment.</p>
+        <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company || 'Big 4'} assessment.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

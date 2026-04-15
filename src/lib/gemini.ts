@@ -42,7 +42,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 }
 
 async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
-  const MAX_RETRIES = 2;
+  const MAX_RETRIES = 3;
   
   try {
     const apiPromise = ai.models.generateContent({
@@ -93,11 +93,13 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
       throw parseErr;
     }
   } catch (err: any) {
+    const isQuotaError = err?.message?.includes("429") || err?.message?.includes("RESOURCE_EXHAUSTED") || err?.status === 429;
     const isNetworkError = err?.message?.includes("Rpc failed") || err?.message?.includes("xhr error") || err?.message?.includes("fetch");
     
-    if (isNetworkError && retryCount < MAX_RETRIES) {
-      const delay = Math.pow(2, retryCount) * 2000;
-      console.log(`Network error detected. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    if ((isQuotaError || isNetworkError) && retryCount < MAX_RETRIES) {
+      const baseDelay = isQuotaError ? 10000 : 2000; // 10s base for quota errors
+      const delay = Math.pow(2, retryCount) * baseDelay + Math.random() * 2000;
+      console.log(`${isQuotaError ? 'Quota (429)' : 'Network'} error detected. Retrying in ${Math.round(delay)}ms... (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return processWithGemini(parts, retryCount + 1);
     }
@@ -105,7 +107,11 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
   }
 }
 
-export async function extractQuestionsFromFiles(files: File[], onProgress?: (progress: number, status?: string) => void): Promise<Question[]> {
+export async function extractQuestionsFromFiles(
+  files: File[], 
+  onProgress?: (progress: number, status?: string) => void,
+  company?: string
+): Promise<Question[]> {
   const allQuestions: Question[] = [];
   const batchSize = 1; // Process one file at a time to avoid payload limits and timeouts
   
@@ -256,22 +262,40 @@ export async function extractQuestionsFromFiles(files: File[], onProgress?: (pro
     if (onProgress) {
       onProgress(Math.min(100, Math.round(((i + batch.length) / validFiles.length) * 100)));
     }
+
+    // Add a small delay between files to avoid hitting rate limits (429)
+    if (i + batchSize < validFiles.length) {
+      console.log("[Gemini] Waiting 3s before next file to avoid rate limits...");
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
   }
 
   // Deduplicate based on question text (simple approach)
   const uniqueQuestions = deduplicateQuestions(allQuestions);
   
-  // Return the entire pool of unique questions
-  return uniqueQuestions.map((q, i) => ({ ...q, id: `pool-${i}` }));
+  // Return the entire pool of unique questions with company tag
+  return uniqueQuestions.map((q, i) => ({ ...q, id: `pool-${i}`, company }));
 }
 
 export function generateQuizFromPool(
   pool: Question[], 
   progress: Record<string, QuestionProgress> = {},
-  masteryMode: boolean = false
+  masteryMode: boolean = false,
+  company?: string,
+  category?: string
 ): Question[] {
   // If mastery mode, we prioritize questions that are NOT mastered.
   let workingPool = [...pool];
+
+  // Filter by company if specified (treat undefined as 'KPMG' for legacy)
+  if (company && company !== 'All') {
+    workingPool = workingPool.filter(q => (q.company || 'KPMG') === company);
+  }
+
+  // Filter by category if specified
+  if (category && category !== 'All') {
+    workingPool = workingPool.filter(q => q.category === category);
+  }
   
   if (masteryMode) {
     // Sort by mastery status (unmastered first) and then by least correct answers
@@ -289,6 +313,17 @@ export function generateQuizFromPool(
       
       return correctA - correctB;
     });
+  }
+
+  if (category && category !== 'All') {
+    // If a specific category is selected, ignore quotas and just take up to 50
+    const finalQuestions = masteryMode 
+      ? workingPool.slice(0, 50) 
+      : [...workingPool].sort(() => Math.random() - 0.5).slice(0, 50);
+    
+    // Final shuffle of the selected questions
+    const fullyShuffled = [...finalQuestions].sort(() => Math.random() - 0.5);
+    return fullyShuffled.map((q) => ({ ...q }));
   }
 
   // Apply quotas to get exactly 50 questions with the requested breakdown
