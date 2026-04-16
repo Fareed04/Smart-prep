@@ -32,12 +32,13 @@ export default function App() {
   const [masteryMode, setMasteryMode] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [quizDuration, setQuizDuration] = useState<number>(60);
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
     answers: {},
     isFinished: false,
-    timeRemaining: 60 * 60, // 60 minutes
+    timeRemaining: 60 * 60, // Default 60 minutes
   });
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -189,11 +190,11 @@ export default function App() {
       currentIndex: 0,
       answers: {},
       isFinished: false,
-      timeRemaining: 60 * 60,
+      timeRemaining: quizDuration * 60,
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory]);
+  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
 
   const handleRestart = React.useCallback(() => {
     setErrorMessage(null);
@@ -393,6 +394,8 @@ export default function App() {
             setSelectedCompany={setSelectedCompany}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
+            quizDuration={quizDuration}
+            setQuizDuration={setQuizDuration}
           />
         )}
         {appState === 'quiz' && (

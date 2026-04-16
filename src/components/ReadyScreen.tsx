@@ -1,4 +1,4 @@
-import { Play, FileText, Settings, Plus, Building2 } from 'lucide-react';
+import { Play, FileText, Settings, Plus, Building2, Clock } from 'lucide-react';
 import { Question } from '../types';
 import { cn } from '../lib/utils';
 
@@ -13,6 +13,8 @@ interface ReadyScreenProps {
   setSelectedCompany: (val: string) => void;
   selectedCategory: string;
   setSelectedCategory: (val: string) => void;
+  quizDuration: number;
+  setQuizDuration: (val: number) => void;
 }
 
 export function ReadyScreen({ 
@@ -25,7 +27,9 @@ export function ReadyScreen({
   selectedCompany,
   setSelectedCompany,
   selectedCategory,
-  setSelectedCategory
+  setSelectedCategory,
+  quizDuration,
+  setQuizDuration
 }: ReadyScreenProps) {
   // Treat undefined company as 'KPMG' for legacy questions
   const companiesInPool = Array.from(new Set(pool.map(q => q.company || 'KPMG'))) as string[];
@@ -150,6 +154,31 @@ export function ReadyScreen({
               <div className="font-bold text-slate-900 dark:text-white">Standard Mode</div>
               <div className="text-xs text-slate-500 dark:text-slate-400">Random selection from the pool for a standard simulation.</div>
             </button>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-medium">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span>Quiz Duration</span>
+              </div>
+              <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-bold">
+                {quizDuration} minutes
+              </div>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="120"
+              step="5"
+              value={quizDuration}
+              onChange={(e) => setQuizDuration(parseInt(e.target.value, 10))}
+              className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div className="flex justify-between text-xs text-slate-500 font-medium">
+              <span>10 min</span>
+              <span>120 min</span>
+            </div>
           </div>
 
           {poolSize < 50 ? (
