@@ -10,7 +10,7 @@ Data Processing: Analyze the uploaded files. Extract unique questions.
 IMPORTANT: Extract a MAXIMUM of 30 high-quality unique questions per file. If the file has more, only take the first 30. This ensures the output does not get cut off.
 
 CRITICAL RULES:
-1. If a question relies on an image, graph, or diagram that is not visible in the text, SKIP IT entirely. Do not include it.
+1. If a question relies on a chart, graph, table, or diagram, DO NOT SKIP IT. Instead, meticulously analyze the visual data and convert it into a well-formatted Markdown table or detailed text description. Embed this directly at the beginning of the 'question' text so the user has all the data required to solve it. Only skip pure spatial reasoning questions (e.g., 'which shape comes next') that absolutely cannot be represented as text or tables.
 2. For fractions and math equations, format them clearly using plain text or simple markdown (e.g., 1/2 or a/b). Ensure the question is properly structured and readable.
 3. For verbal questions, ALWAYS include the instruction (e.g., 'Choose the antonym for the following word:', 'Select the synonym:'). If the original text lacks instructions, infer them from the options and add them explicitly to the question text.
 

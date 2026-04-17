@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
 import { cn } from '../lib/utils';
 import { Calculator } from './Calculator';
@@ -129,9 +131,11 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
         )}
 
         <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed">
-            {currentQuestion.question}
-          </h2>
+          <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {currentQuestion.question}
+            </ReactMarkdown>
+          </div>
         </div>
         
         <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 space-y-3">
@@ -222,11 +226,13 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
               <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg shrink-0">
                 <Lightbulb className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 max-w-full overflow-hidden">
                 <h3 className="font-semibold text-amber-900 dark:text-amber-300">AI Explanation & Strategy</h3>
-                <p className="text-amber-800 dark:text-amber-200/80 leading-relaxed whitespace-pre-wrap">
-                  {currentQuestion.explanation}
-                </p>
+                <div className="text-amber-800 dark:text-amber-200/80 leading-relaxed whitespace-pre-wrap prose prose-amber dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {currentQuestion.explanation}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           </div>
