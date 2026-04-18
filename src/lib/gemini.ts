@@ -22,6 +22,7 @@ Categorize each question strictly into one of the following categories:
 - Antonyms/Synonyms
 - Critical Reasoning
 - Current Affairs
+- Soft Skills / Situational Judgment
 
 Logic Check: If a question is about Nigerian politics or economics, compare it against 2026 facts. If the answer in the PDF is outdated, update it and provide a "Context Note" in the explanation.
 Explanation Style: Use "First Principles" thinking. Explain why the wrong options are wrong. Provide a "Work Smarter" explanation (shortcuts, GMAT logic, or "Elimination" tactics).
@@ -62,7 +63,7 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
               options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of multiple choice options" },
               answer: { type: Type.STRING, description: "The correct option exactly as it appears in the options list" },
               explanation: { type: Type.STRING, description: "Detailed explanation including 'Work Smarter' tips and context notes" },
-              category: { type: Type.STRING, description: "Strictly one of: Numerical Reasoning, Data Analysis, Reading Comprehension, Sentence Correction, Antonyms/Synonyms, Critical Reasoning, Current Affairs" },
+              category: { type: Type.STRING, description: "Strictly one of: Numerical Reasoning, Data Analysis, Reading Comprehension, Sentence Correction, Antonyms/Synonyms, Critical Reasoning, Current Affairs, Soft Skills / Situational Judgment" },
             },
             required: ["question", "options", "answer", "explanation", "category"],
           },
@@ -327,7 +328,7 @@ export function generateQuizFromPool(
   }
 
   // Apply quotas to get exactly 50 questions with the requested breakdown
-  const quotas: Record<string, number> = {
+  let quotas: Record<string, number> = {
     "Numerical Reasoning": 15,
     "Data Analysis": 5,
     "Reading Comprehension": 5,
@@ -336,6 +337,19 @@ export function generateQuizFromPool(
     "Critical Reasoning": 5,
     "Current Affairs": 10,
   };
+
+  // Adjust quotas specifically for EY's 4-section format: Numeracy, Literacy, Critical Reasoning, Soft Skills
+  if (company === 'EY') {
+    quotas = {
+      "Numerical Reasoning": 10,
+      "Data Analysis": 5,
+      "Reading Comprehension": 7,
+      "Sentence Correction": 4,
+      "Antonyms/Synonyms": 4,
+      "Critical Reasoning": 10,
+      "Soft Skills / Situational Judgment": 10,
+    };
+  }
 
   const grouped: Record<string, Question[]> = {};
   for (const q of workingPool) {
