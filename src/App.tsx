@@ -376,11 +376,16 @@ export default function App() {
             progress={questionProgress}
           />
         )}
-        {appState === 'upload' && (
-          <UploadScreen files={files} setFiles={setFiles} onStartProcessing={handleStartProcessing} errorMessage={errorMessage} />
-        )}
-        {appState === 'processing' && (
-          <ProcessingScreen progress={progress} status={processingStatus} />
+        {(appState === 'upload' || appState === 'processing') && (
+          <UploadScreen 
+            files={files} 
+            setFiles={setFiles} 
+            onStartProcessing={handleStartProcessing} 
+            errorMessage={errorMessage} 
+            isProcessing={appState === 'processing'}
+            processingStatus={processingStatus}
+            progress={progress}
+          />
         )}
         {appState === 'ready' && (
           <ReadyScreen 

@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, FileText, X, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileText, X, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface UploadScreenProps {
@@ -8,13 +8,31 @@ interface UploadScreenProps {
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onStartProcessing: (company: string) => void;
   errorMessage?: string | null;
+  isProcessing?: boolean;
+  processingStatus?: string;
+  progress?: number;
 }
 
 const COMPANIES = ['KPMG', 'EY', 'PwC', 'Deloitte', 'Other'];
 
-export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage }: UploadScreenProps) {
-  const [selectedCompany, setSelectedCompany] = React.useState('KPMG');
+export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage, isProcessing = false, processingStatus = "", progress = 0 }: UploadScreenProps) {
+  const [selectedCompany, setSelectedCompany] = useState('KPMG');
+  const [currentFileIndex, setCurrentFileIndex] = useState<number>(-1);
+
+  // Track which file is currently processing based on the status string
+  useEffect(() => {
+    if (!isProcessing) {
+      setCurrentFileIndex(-1);
+    } else if (processingStatus) {
+      const idx = files.findIndex(f => processingStatus.toLowerCase().includes(f.name.toLowerCase()));
+      if (idx !== -1) {
+        setCurrentFileIndex(idx);
+      }
+    }
+  }, [processingStatus, isProcessing, files]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (isProcessing) return;
     setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 40)); // Max 40 files
   }, [setFiles]);
 
@@ -54,7 +72,8 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
                 "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2",
                 selectedCompany === company
                   ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500"
+                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500",
+                isProcessing && "opacity-50 cursor-not-allowed pointer-events-none"
               )}
             >
               {company}
@@ -73,11 +92,12 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
       <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-colors duration-200",
-          isDragActive ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" : "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          "border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-200",
+          isDragActive ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" : "border-slate-300 dark:border-slate-700",
+          isProcessing ? "opacity-50 cursor-not-allowed blur-[1px]" : "cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
         )}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} disabled={isProcessing} />
         <div className="flex flex-col items-center space-y-4">
           <div className="p-4 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full">
             <UploadCloud className="w-8 h-8" />
@@ -102,30 +122,63 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage 
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Selected Files ({files.length}/40)</h3>
             <button
               onClick={() => onStartProcessing(selectedCompany)}
-              className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              disabled={isProcessing}
+              className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              Process & Start Simulation
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
+              <span>{isProcessing ? `Processing (${progress}%)` : 'Process & Start Simulation'}</span>
             </button>
           </div>
           
+          {isProcessing && (
+            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 animate-pulse text-right">
+              {processingStatus}
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {files.map((file, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
-                <div className="flex items-center space-x-3 overflow-hidden">
-                  <FileText className="w-5 h-5 text-blue-500 dark:text-blue-400 shrink-0" />
-                  <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+            {files.map((file, i) => {
+              const fileIsProcessing = isProcessing && i === currentFileIndex;
+              const fileIsDone = isProcessing && currentFileIndex !== -1 && i < currentFileIndex;
+              const fileIsPending = isProcessing && currentFileIndex !== -1 && i > currentFileIndex;
+
+              return (
+                <div key={i} className={cn(
+                  "flex items-center justify-between p-3 bg-white dark:bg-slate-900 border rounded-lg shadow-sm transition-all",
+                  fileIsProcessing ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 dark:border-slate-700",
+                  fileIsPending ? "opacity-60" : "opacity-100"
+                )}>
+                  <div className="flex flex-col flex-1 overflow-hidden min-w-0 mr-3">
+                    <div className="flex items-center space-x-3">
+                      <FileText className={cn("w-5 h-5 shrink-0", fileIsDone ? "text-green-500" : fileIsProcessing ? "text-blue-500" : "text-blue-500 dark:text-blue-400")} />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                    </div>
+                    {fileIsProcessing && (
+                      <div className="mt-2 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full animate-pulse w-full"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {isProcessing ? (
+                    <div className="shrink-0 flex items-center justify-center p-1">
+                      {fileIsProcessing && <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />}
+                      {fileIsDone && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(i);
+                      }}
+                      className="p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFile(i);
-                  }}
-                  className="p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
