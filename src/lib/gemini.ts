@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question, QuestionProgress } from "../types";
 import * as mammoth from "mammoth";
+import { PDFDocument } from "pdf-lib";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -117,7 +118,7 @@ export async function extractQuestionsFromFiles(
   const batchSize = 1; // Process one file at a time to avoid payload limits and timeouts
   
   // Filter out empty files and files that are too large for the proxy (approx 15MB limit)
-  const validFiles = files.filter(f => {
+  let validFiles = files.filter(f => {
     if (f.size === 0) return false;
     if (f.size > 15 * 1024 * 1024) {
       console.warn(`File ${f.name} is too large (>15MB) and may fail. Skipping.`);
@@ -138,6 +139,51 @@ export async function extractQuestionsFromFiles(
     console.warn("No valid files to process (files might be empty).");
     return [];
   }
+
+  // Pre-process valid files to split large PDFs
+  const expandedFiles: File[] = [];
+  for (let i = 0; i < validFiles.length; i++) {
+    const file = validFiles[i];
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        if (onProgress) onProgress(5, `Analyzing PDF structure: ${file.name}...`);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const totalPages = pdfDoc.getPageCount();
+        const MAX_PAGES_PER_CHUNK = 10;
+
+        if (totalPages > MAX_PAGES_PER_CHUNK) {
+          console.log(`[Gemini] Splitting ${file.name} (${totalPages} pages) into chunks of ${MAX_PAGES_PER_CHUNK}...`);
+          if (onProgress) onProgress(10, `Splitting large PDF: ${file.name} (${totalPages} pages)...`);
+          for (let start = 0; start < totalPages; start += MAX_PAGES_PER_CHUNK) {
+            try {
+              const chunkDoc = await PDFDocument.create();
+              const end = Math.min(start + MAX_PAGES_PER_CHUNK, totalPages);
+              const pageIndices = Array.from({ length: end - start }, (_, idx) => start + idx);
+              const copiedPages = await chunkDoc.copyPages(pdfDoc, pageIndices);
+              copiedPages.forEach(p => chunkDoc.addPage(p));
+              
+              const chunkBytes = await chunkDoc.save();
+              const chunkFile = new File([chunkBytes], `${file.name.replace(/\.pdf$/i, '')}_pages_${start + 1}-${end}.pdf`, { type: 'application/pdf' });
+              expandedFiles.push(chunkFile);
+            } catch (chunkErr) {
+              console.error(`[Gemini] Error chunking pages ${start + 1}-${Math.min(start + MAX_PAGES_PER_CHUNK, totalPages)} for ${file.name}:`, chunkErr);
+            }
+          }
+        } else {
+          expandedFiles.push(file);
+        }
+      } catch (err) {
+        console.error(`[Gemini] Error loading PDF ${file.name} for chunking:`, err);
+        // Fallback to original file if loading fails
+        expandedFiles.push(file);
+      }
+    } else {
+      expandedFiles.push(file);
+    }
+  }
+  
+  validFiles = expandedFiles;
   
   for (let i = 0; i < validFiles.length; i += batchSize) {
     const batch = validFiles.slice(i, i + batchSize);
