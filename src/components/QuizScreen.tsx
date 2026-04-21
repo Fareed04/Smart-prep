@@ -48,20 +48,20 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleOptionSelect = (option: string) => {
+  const handleOptionSelect = React.useCallback((option: string) => {
     if (isAnswerChecked || isPaused || isFinishing) return;
     setState((prev) => ({
       ...prev,
       answers: { ...prev.answers, [currentQuestion.id]: option },
     }));
-  };
+  }, [isAnswerChecked, isPaused, isFinishing, currentQuestion.id, setState]);
 
-  const handleCheckAnswer = () => {
+  const handleCheckAnswer = React.useCallback(() => {
     if (!state.answers[currentQuestion.id] || isPaused || isFinishing) return;
     setIsAnswerChecked(true);
-  };
+  }, [state.answers, currentQuestion.id, isPaused, isFinishing]);
 
-  const handleNext = () => {
+  const handleNext = React.useCallback(() => {
     if (isFinishing) return;
     setShowExplanation(false);
     setIsAnswerChecked(false);
@@ -70,15 +70,45 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
     } else {
       handleFinish();
     }
-  };
+  }, [isFinishing, state.currentIndex, state.questions.length, handleFinish, setState]);
 
-  const handlePrev = () => {
+  const handlePrev = React.useCallback(() => {
     if (state.currentIndex > 0) {
       setShowExplanation(false);
       setIsAnswerChecked(!!state.answers[state.questions[state.currentIndex - 1].id]);
       setState((prev) => ({ ...prev, currentIndex: prev.currentIndex - 1 }));
     }
-  };
+  }, [state.currentIndex, state.answers, state.questions, setState]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      if (isPaused || isFinishing) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (!isAnswerChecked && state.answers[currentQuestion.id]) {
+          handleCheckAnswer();
+        } else if (isAnswerChecked) {
+          handleNext();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        handlePrev();
+      } else if (!isAnswerChecked) {
+        const keyMap: Record<string, number> = {
+          '1': 0, '2': 1, '3': 2, '4': 3, '5': 4,
+          'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4
+        };
+        const index = keyMap[e.key.toLowerCase()];
+        if (index !== undefined && index < currentQuestion.options.length) {
+          handleOptionSelect(currentQuestion.options[index]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPaused, isFinishing, isAnswerChecked, state.answers, currentQuestion, handleCheckAnswer, handleNext, handlePrev, handleOptionSelect]);
 
   const selectedOption = state.answers[currentQuestion.id];
   const isCorrect = selectedOption === currentQuestion.answer;
