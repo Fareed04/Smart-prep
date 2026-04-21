@@ -196,6 +196,10 @@ export default function App() {
     setAppState('quiz');
   }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
 
+  const handleLeaveQuiz = React.useCallback(() => {
+    setAppState('ready');
+  }, []);
+
   const handleRestart = React.useCallback(() => {
     setErrorMessage(null);
     setIsViewingPastReport(false);
@@ -408,6 +412,7 @@ export default function App() {
             state={quizState} 
             setState={setQuizState} 
             onFinish={handleFinishQuiz} 
+            onLeave={handleLeaveQuiz}
           />
         )}
         {appState === 'report' && (

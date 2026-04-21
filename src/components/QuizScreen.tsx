@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
@@ -10,9 +10,10 @@ interface QuizScreenProps {
   state: QuizState;
   setState: React.Dispatch<React.SetStateAction<QuizState>>;
   onFinish: () => void;
+  onLeave: () => void;
 }
 
-export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
+export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -126,6 +127,17 @@ export function QuizScreen({ state, setState, onFinish }: QuizScreenProps) {
           </div>
         </div>
         <div className="flex items-center justify-end space-x-3">
+          <button
+            onClick={() => {
+              if (window.confirm("Are you sure you want to leave this simulation? No progress will be saved.")) {
+                onLeave();
+              }
+            }}
+            className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors"
+            title="Leave Simulation"
+          >
+            <X className="w-5 h-5" />
+          </button>
           <button
             onClick={() => setIsPaused(!isPaused)}
             className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
