@@ -18,6 +18,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
 
@@ -128,11 +129,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
         </div>
         <div className="flex items-center justify-end space-x-3">
           <button
-            onClick={() => {
-              if (window.confirm("Are you sure you want to leave this simulation? No progress will be saved.")) {
-                onLeave();
-              }
-            }}
+            onClick={() => setShowLeaveConfirmation(true)}
             className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors"
             title="Leave Simulation"
           >
@@ -280,6 +277,32 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </div>
         )}
       </div>
+
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Leave Simulation?</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-8">
+              Are you sure you want to leave this simulation? None of your answers or progress will be saved.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowLeaveConfirmation(false)}
+                className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onLeave}
+                className="flex-1 px-6 py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-md"
+              >
+                Yes, Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Calculator />
     </div>
