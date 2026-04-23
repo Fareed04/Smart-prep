@@ -11,7 +11,7 @@ import { QuizState, Question, QuestionProgress } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { LogOut, LayoutDashboard } from 'lucide-react';
+import { LogOut, LayoutDashboard, BookOpen } from 'lucide-react';
 
 type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report';
 
@@ -318,9 +318,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => user && setAppState('dashboard')}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">K</span>
+              <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Smart-Prep</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Big 4 Smart-Prep</span>
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">

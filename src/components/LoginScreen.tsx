@@ -34,7 +34,7 @@ export function LoginScreen() {
         </div>
         
         <div className="space-y-3">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">KPMG Smart-Prep</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Big 4 Smart-Prep</h1>
           <p className="text-slate-600 dark:text-slate-400">
             Sign in to track your progress, save your quiz history, and generate AI-powered simulations.
           </p>
