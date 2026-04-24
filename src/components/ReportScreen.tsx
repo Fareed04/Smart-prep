@@ -78,8 +78,23 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
       score: (stats.correct / stats.total) * 100,
       total: stats.total
     }))
-    .filter(stat => stat.score < 70)
-    .sort((a, b) => a.score - b.score);
+    .filter(stat => stat.score < 80) // Consider a weakness if below 80%
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3); // Top 1-3 categories
+
+  const getActionableAdvice = (category: string) => {
+    const adviceMap: Record<string, string> = {
+      'Numerical Reasoning': 'Brush up on mental math shortcuts and percentage calculations. Practice GMAT-style Quantitative questions.',
+      'Data Analysis': 'Focus on reading charts and tables quickly. Practice identifying trends and performing multi-step calculations.',
+      'Reading Comprehension': 'Improve your reading speed and focus on identifying the main point. Look for signal words in the text.',
+      'Sentence Correction': 'Review core grammar rules (Subject-Verb Agreement, Parallelism). Practice identifying "conciseness" errors.',
+      'Antonyms/Synonyms': 'Build your vocabulary through consistent reading. Focus on understanding word roots and context clues.',
+      'Critical Reasoning': 'Learn to map arguments. Practice identifying assumptions and weakening/strengthening factors.',
+      'Current Affairs': 'Review Nigerian and global political/economic facts for 2024-2026. Focus on key leadership and policy changes.',
+      'Soft Skills / Situational Judgment': 'Study Big 4 core values and professional ethics. Focus on empathy, leadership, and conflict resolution.',
+    };
+    return adviceMap[category] || 'You need more practice here. Focus on "Work Smarter" tactics for this section.';
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -132,7 +147,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
                     />
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    You need more practice here. Focus on "Work Smarter" tactics for this section.
+                    {getActionableAdvice(w.category)}
                   </p>
                 </div>
               ))}
@@ -143,7 +158,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <p className="text-lg font-medium text-slate-900 dark:text-white">Excellent Work!</p>
-              <p className="text-slate-600 dark:text-slate-400">You scored above 70% in all categories.</p>
+              <p className="text-slate-600 dark:text-slate-400">You scored above 80% in all categories.</p>
             </div>
           )}
         </div>

@@ -13,6 +13,14 @@ interface QuizScreenProps {
   onLeave: () => void;
 }
 
+const MarkdownComponents = {
+  table: ({node, ...props}: any) => (
+    <div className="overflow-x-auto w-full">
+      <table {...props} className="w-full whitespace-nowrap sm:whitespace-normal" />
+    </div>
+  )
+};
+
 export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -171,7 +179,10 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
 
         <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800">
           <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={MarkdownComponents}
+            >
               {currentQuestion.question}
             </ReactMarkdown>
           </div>
