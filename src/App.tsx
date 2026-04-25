@@ -39,6 +39,7 @@ export default function App() {
     answers: {},
     isFinished: false,
     timeRemaining: 60 * 60, // Default 60 minutes
+    flaggedQuestions: []
   });
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -191,6 +192,7 @@ export default function App() {
       answers: {},
       isFinished: false,
       timeRemaining: quizDuration * 60,
+      flaggedQuestions: []
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
@@ -296,6 +298,7 @@ export default function App() {
           currentIndex: parsedQuestions.length - 1,
           isFinished: true,
           timeRemaining: 3600 - session.timeTaken,
+          flaggedQuestions: []
         });
         setIsViewingPastReport(true);
         setAppState('report');

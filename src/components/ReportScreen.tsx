@@ -164,6 +164,48 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         </div>
       </div>
 
+      {state.flaggedQuestions && state.flaggedQuestions.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+              <span>Flagged for Review</span>
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Questions you marked as difficult during the simulation.</p>
+          </div>
+          <div className="p-6 space-y-6">
+            {state.flaggedQuestions.map((flaggedId, index) => {
+              const question = state.questions.find(q => q.id === flaggedId);
+              if (!question) return null;
+              const isCorrect = state.answers[question.id] === question.answer;
+              
+              return (
+                <div key={question.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-center space-x-2">
+                       <span className="font-semibold text-slate-900 dark:text-white">Q{index + 1}</span>
+                       <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">{question.category}</span>
+                    </div>
+                    {isCorrect ? (
+                      <span className="flex items-center text-xs font-medium text-green-600 dark:text-green-400"><CheckCircle2 className="w-3 h-3 mr-1"/> Correct</span>
+                    ) : (
+                      <span className="flex items-center text-xs font-medium text-red-600 dark:text-red-400"><AlertCircle className="w-3 h-3 mr-1"/> Incorrect</span>
+                    )}
+                  </div>
+                  <div className="text-slate-700 dark:text-slate-300 text-sm line-clamp-2 mb-3">
+                    {question.question.substring(0, 150)}...
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 p-3 bg-white dark:bg-slate-900 rounded border border-slate-100 dark:border-slate-800">
+                     <span className="font-semibold text-amber-600 dark:text-amber-400">Work Smarter: </span>
+                     {question.explanation.substring(0, 100)}...
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
         <button
           onClick={onDashboard}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
@@ -123,12 +123,26 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const selectedOption = state.answers[currentQuestion.id];
   const isCorrect = selectedOption === currentQuestion.answer;
 
+  const toggleFlag = () => {
+    setState(prev => {
+      const isFlagged = prev.flaggedQuestions?.includes(currentQuestion.id);
+      return {
+        ...prev,
+        flaggedQuestions: isFlagged
+          ? prev.flaggedQuestions.filter(id => id !== currentQuestion.id)
+          : [...(prev.flaggedQuestions || []), currentQuestion.id]
+      };
+    });
+  };
+
+  const isCurrentFlagged = state.flaggedQuestions?.includes(currentQuestion.id);
+
   return (
     <div className="max-w-4xl mx-auto p-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
+           <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
             Question {state.currentIndex + 1} of {state.questions.length}
           </div>
           <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
@@ -136,6 +150,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </div>
         </div>
         <div className="flex items-center justify-end space-x-3">
+          <button
+            onClick={toggleFlag}
+            className={cn(
+              "p-2 rounded-full transition-colors flex items-center space-x-1 px-3",
+              isCurrentFlagged 
+                ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" 
+                : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            )}
+            title={isCurrentFlagged ? "Remove Flag" : "Flag for Review"}
+          >
+           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isCurrentFlagged ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+           <span className="hidden sm:inline text-sm font-medium">{isCurrentFlagged ? 'Flagged' : 'Flag'}</span>
+          </button>
           <button
             onClick={() => setShowLeaveConfirmation(true)}
             className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors"
@@ -151,14 +178,22 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
           </button>
           <div className={cn(
-            "flex items-center space-x-2 px-4 py-2 rounded-full font-mono font-medium text-base sm:text-lg",
-            state.timeRemaining < 300 ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400" : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
+            "flex items-center space-x-2 px-4 py-2 rounded-full font-mono font-medium text-base sm:text-lg transition-colors",
+            state.timeRemaining > 0 && state.timeRemaining <= 300 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400" : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
           )}>
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Clock className={cn("w-4 h-4 sm:w-5 sm:h-5", state.timeRemaining > 0 && state.timeRemaining <= 300 && "animate-pulse")} />
             <span>{formatTime(state.timeRemaining)}</span>
           </div>
         </div>
       </div>
+
+      {/* Warning Banner */}
+      {state.timeRemaining > 0 && state.timeRemaining <= 300 && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 animate-pulse" />
+          <p className="text-sm font-medium">Less than 5 minutes remaining! Please review your answers before the simulation ends.</p>
+        </div>
+      )}
 
       {/* Question Card */}
       <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6">

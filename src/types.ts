@@ -21,6 +21,7 @@ export interface QuizState {
   answers: Record<string, string>; // questionId -> selected option
   isFinished: boolean;
   timeRemaining: number; // in seconds
+  flaggedQuestions: string[]; // array of questionIds
 }
 
 export interface QuizSession {
