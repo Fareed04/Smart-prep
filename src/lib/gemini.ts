@@ -441,17 +441,60 @@ export function generateQuizFromPool(
   return fullyShuffled.map((q) => ({ ...q })); // Keep original IDs for progress tracking
 }
 
+function getBigrams(str: string): Set<string> {
+  const bigrams = new Set<string>();
+  for (let i = 0; i < str.length - 1; i++) {
+    bigrams.add(str.slice(i, i + 2));
+  }
+  return bigrams;
+}
+
+function calculateSimilarity(str1: string, str2: string): number {
+  if (!str1 || !str2) return 0;
+  if (str1 === str2) return 1;
+
+  const b1 = getBigrams(str1);
+  const b2 = getBigrams(str2);
+  
+  if (b1.size === 0 || b2.size === 0) return 0;
+
+  const intersection = new Set([...b1].filter(x => b2.has(x)));
+  
+  // Sørensen–Dice coefficient
+  return (2 * intersection.size) / (b1.size + b2.size);
+}
+
 export function deduplicateQuestions(questions: any[]): any[] {
-  const seen = new Set<string>();
-  return questions.filter((q) => {
-    // Normalize question text for comparison
-    const normalized = (q.question || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (seen.has(normalized)) {
-      return false;
+  const uniqueQuestions: any[] = [];
+  
+  for (const q of questions) {
+    // Create a comprehensive string representation of the question
+    const qStr = [
+      q.question || "",
+      ...(Array.isArray(q.options) ? q.options : []),
+      q.explanation || ""
+    ].join(" ").toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+
+    let isDuplicate = false;
+    for (const existingQ of uniqueQuestions) {
+      const existingStr = [
+        existingQ.question || "",
+        ...(Array.isArray(existingQ.options) ? existingQ.options : []),
+        existingQ.explanation || ""
+      ].join(" ").toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+      
+      const similarity = calculateSimilarity(qStr, existingStr);
+      if (similarity > 0.85) { // 85% similarity threshold
+        isDuplicate = true;
+        break;
+      }
     }
-    seen.add(normalized);
-    return true;
-  });
+    
+    if (!isDuplicate) {
+      uniqueQuestions.push(q);
+    }
+  }
+  return uniqueQuestions;
 }
 
 function fileToBase64(file: File): Promise<string> {
