@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap } from 'lucide-react';
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -20,6 +20,9 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   const timeTaken = (60 * 60) - state.timeRemaining;
   const [isSaved, setIsSaved] = useState(isViewingPastReport);
   const saveInProgress = React.useRef(false);
+
+  // XP is calculated in App.tsx but we can mirror the logic here for display
+  const gainedXp = (correctAnswers * 50) + 200;
 
   useEffect(() => {
     if (score >= 70 && !isViewingPastReport) {
@@ -106,22 +109,31 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company || 'Big 4'} assessment.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Final Score</div>
-          <div className="text-5xl font-bold text-slate-900 dark:text-white">{score}%</div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
+          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Final Score</div>
+          <div className="text-3xl font-bold text-slate-900 dark:text-white">{score}%</div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Correct</div>
-          <div className="text-5xl font-bold text-green-600 dark:text-green-400">{correctAnswers}</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">out of {totalQuestions}</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
+          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Correct</div>
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400">{correctAnswers}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400">/{totalQuestions}</div>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Time Used</div>
-          <div className="text-5xl font-bold text-blue-600 dark:text-blue-400">
-            {Math.floor(timeTaken / 60)}m {timeTaken % 60}s
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
+          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Time Used</div>
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            {Math.floor(timeTaken / 60)}m
           </div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400">{timeTaken % 60}s</div>
         </div>
+        {!isViewingPastReport && (
+          <div className="bg-blue-600 p-4 rounded-2xl shadow-lg border border-blue-500 text-center text-white relative overflow-hidden group">
+            <Zap className="absolute -right-2 -bottom-2 w-16 h-16 text-blue-500/20 group-hover:scale-110 transition-transform duration-500" />
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-1 relative z-10">XP Gained</div>
+            <div className="text-3xl font-bold relative z-10">+{gainedXp}</div>
+            <div className="text-[10px] opacity-80 relative z-10">Experience Points</div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">

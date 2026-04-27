@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
-import { QuizSession, Question, QuestionProgress } from '../types';
-import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen } from 'lucide-react';
+import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
+import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star } from 'lucide-react';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardProps {
   onStartNew: () => void;
@@ -11,9 +12,10 @@ interface DashboardProps {
   errorMessage?: string | null;
   pool: Question[];
   progress: Record<string, QuestionProgress>;
+  userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progress }: DashboardProps) {
+export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,20 +55,70 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progre
   const attemptedCount = Object.keys(progress).length;
   const masteryPercentage = totalPoolSize > 0 ? Math.round((masteredCount / totalPoolSize) * 100) : 0;
 
+  const getRank = (level: number) => {
+    if (level >= 76) return "Partner";
+    if (level >= 51) return "Director";
+    if (level >= 36) return "Senior Manager";
+    if (level >= 21) return "Manager";
+    if (level >= 11) return "Senior Associate";
+    if (level >= 6) return "Associate";
+    return "Intern";
+  };
+
+  const getRankColor = (level: number) => {
+    if (level >= 76) return "text-purple-600 dark:text-purple-400";
+    if (level >= 51) return "text-red-600 dark:text-red-400";
+    if (level >= 36) return "text-orange-600 dark:text-orange-400";
+    if (level >= 21) return "text-amber-600 dark:text-amber-400";
+    if (level >= 11) return "text-blue-600 dark:text-blue-400";
+    if (level >= 6) return "text-green-600 dark:text-green-400";
+    return "text-slate-600 dark:text-slate-400";
+  };
+
+  const xpProgress = userProfile ? (userProfile.xp % 1000) / 10 : 0;
+
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {auth.currentUser?.displayName?.split(' ')[0] || 'User'}</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your Big 4 assessment prep?</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center space-x-4">
+          {userProfile && (
+            <div className="relative">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                {userProfile.level}
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white p-1 rounded-full border-2 border-white dark:border-slate-950">
+                <Trophy className="w-4 h-4" />
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {auth.currentUser?.displayName?.split(' ')[0] || 'User'}</h1>
+              {userProfile && (
+                 <span className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold uppercase tracking-widest ${getRankColor(userProfile.level)}`}>
+                   {getRank(userProfile.level)}
+                 </span>
+              )}
+            </div>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your Big 4 assessment prep?</p>
+          </div>
         </div>
-        <button
-          onClick={onStartNew}
-          className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md"
-        >
-          <Play className="w-5 h-5" />
-          <span>Start New Simulation</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {userProfile && (
+            <div className="flex items-center space-x-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-100 dark:border-amber-800/50">
+              <Flame className="w-5 h-5 fill-current" />
+              <span className="font-bold text-lg">{userProfile.streak}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">Day Streak</span>
+            </div>
+          )}
+          <button
+            onClick={onStartNew}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md"
+          >
+            <Play className="w-5 h-5" />
+            <span>Start Simulation</span>
+          </button>
+        </div>
       </div>
 
       {errorMessage && (
@@ -76,39 +128,110 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progre
         </div>
       )}
 
-      {/* Mastery Progress */}
-      {totalPoolSize > 0 && (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
-                <Award className="w-6 h-6" />
+      {/* Gamified Progress row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* XP Progress */}
+        {userProfile && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+             <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                  <Zap className="w-6 h-6 fill-current" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Experience Points</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Level up at {((Math.floor(userProfile.xp / 1000) + 1) * 1000)} XP</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mastery Progress</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Memorize all {totalPoolSize} questions in your pool</p>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userProfile.xp.toLocaleString()}</div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total XP</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{masteryPercentage}%</div>
-              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Mastery</div>
+            
+            <div className="space-y-2">
+              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpProgress}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full bg-blue-600"
+                />
+              </div>
+              <div className="flex justify-between text-xs font-medium text-slate-500">
+                <span>{userProfile.xp % 1000} / 1000 XP for Level {userProfile.level + 1}</span>
+                <span>{Math.round(xpProgress)}%</span>
+              </div>
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-blue-600 transition-all duration-1000 ease-out"
-                style={{ width: `${masteryPercentage}%` }}
-              />
+        )}
+
+        {/* Mastery Progress */}
+        {totalPoolSize > 0 && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                  <Star className="w-6 h-6 fill-current" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mastery Progress</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{masteredCount} of {totalPoolSize} mastered</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{masteryPercentage}%</div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mastery</div>
+              </div>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400 font-medium">{masteredCount} Mastered</span>
-              <span className="text-slate-400 dark:text-slate-500">{attemptedCount} Attempted • {totalPoolSize} Total</span>
+            
+            <div className="space-y-2">
+              <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${masteryPercentage}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                  className="h-full bg-amber-500"
+                />
+              </div>
+              <div className="flex justify-between text-xs font-medium text-slate-500">
+                 <span>Master the entire pool to earn "Big 4 Legend"</span>
+                <span>{masteryPercentage}%</span>
+              </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Achievements / Badges */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center space-x-2">
+          <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <span>Professional Badges</span>
+        </h2>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
+            { id: 'streak', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
+            { id: 'master', title: 'Big 4 Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
+            { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
+          ].map((badge) => (
+            <div 
+              key={badge.id}
+              className={`p-4 rounded-2xl border text-center transition-all duration-300 ${
+                badge.active 
+                  ? 'border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 grayscale-0 opacity-100 shadow-sm' 
+                  : 'border-slate-100 dark:border-slate-800 opacity-40 grayscale'
+              }`}
+            >
+              <div className="text-3xl mb-2">{badge.icon}</div>
+              <div className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">{badge.title}</div>
+              <div className="text-[9px] text-slate-500 line-clamp-1">{badge.desc}</div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

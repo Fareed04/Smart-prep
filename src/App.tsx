@@ -7,11 +7,12 @@ import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions } from './lib/gemini';
-import { QuizState, Question, QuestionProgress } from './types';
+import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { LogOut, LayoutDashboard, BookOpen } from 'lucide-react';
+import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report';
 
@@ -22,6 +23,7 @@ const STORAGE_KEY_APP_STATE = 'smartprep_app_state';
 export default function App() {
   const [appState, setAppState] = useState<AppState>('login');
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
@@ -103,8 +105,24 @@ export default function App() {
       setUser(currentUser);
       
       if (currentUser) {
-        // Fetch cloud pool so documents persist across devices (like Desktop -> Mobile)
+        // Fetch cloud pool and profile
         try {
+          const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
+          if (profileDoc.exists()) {
+            setUserProfile(profileDoc.data() as UserProfile);
+          } else {
+            const initialProfile: UserProfile = {
+              uid: currentUser.uid,
+              xp: 0,
+              level: 1,
+              streak: 1,
+              lastActive: new Date().toISOString(),
+              achievements: []
+            };
+            await setDoc(doc(db, 'profiles', currentUser.uid), initialProfile);
+            setUserProfile(initialProfile);
+          }
+
           const poolDoc = await getDoc(doc(db, 'questionPools', currentUser.uid));
           if (poolDoc.exists()) {
             const data = poolDoc.data();
@@ -258,9 +276,56 @@ export default function App() {
 
   const handleFinishQuiz = React.useCallback(() => {
     updateMasteryProgress(quizState.questions, quizState.answers);
+    
+    // XP Calculation
+    const correctCount = quizState.questions.filter(q => quizState.answers[q.id] === q.answer).length;
+    const gainedXp = (correctCount * 50) + 200; // 50 per correct, 200 for finishing
+    
+    if (user && userProfile) {
+      const newXp = userProfile.xp + gainedXp;
+      const newLevel = Math.floor(newXp / 1000) + 1;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const lastActiveDate = userProfile.lastActive?.split('T')[0];
+      let newStreak = userProfile.streak;
+      
+      if (lastActiveDate !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (lastActiveDate === yesterdayStr) {
+          newStreak += 1;
+        } else {
+          newStreak = 1;
+        }
+      }
+
+      const updatedProfile = {
+        ...userProfile,
+        xp: newXp,
+        level: newLevel,
+        streak: newStreak,
+        lastActive: new Date().toISOString()
+      };
+      
+      setUserProfile(updatedProfile);
+      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch(console.error);
+
+      // Level up celebration!
+      if (newLevel > userProfile.level) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#2563eb', '#10b981', '#f59e0b']
+        });
+      }
+    }
+
     setQuizState(prev => ({ ...prev, isFinished: true }));
     setAppState('report');
-  }, [quizState.questions, quizState.answers, updateMasteryProgress]);
+  }, [quizState.questions, quizState.answers, updateMasteryProgress, user, userProfile]);
 
   const handleUploadDifferent = React.useCallback(() => {
     setFiles([]);
@@ -381,6 +446,7 @@ export default function App() {
             errorMessage={errorMessage}
             pool={extractedPool}
             progress={questionProgress}
+            userProfile={userProfile}
           />
         )}
         {(appState === 'upload' || appState === 'processing') && (

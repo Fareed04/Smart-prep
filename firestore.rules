@@ -57,9 +57,24 @@ service cloud.firestore {
              (!('progress' in data) || data.progress is string);
     }
 
+    function isValidProfile(data) {
+      return hasOnlyAllowedFields(['uid', 'xp', 'level', 'streak', 'lastActive', 'achievements']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.xp is number && data.xp >= 0 &&
+             data.level is number && data.level >= 1 &&
+             data.streak is number && data.streak >= 0 &&
+             data.lastActive is string &&
+             data.achievements is list;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+    match /profiles/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidProfile(request.resource.data);
+    }
+
     match /quizSessions/{sessionId} {
       // Users can only read their own quiz sessions
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

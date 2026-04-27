@@ -1,3 +1,20 @@
+export interface UserProfile {
+  uid: string;
+  xp: number;
+  level: number;
+  streak: number;
+  lastActive?: string; // ISO date string
+  achievements: string[];
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  requirement: (profile: UserProfile, session: QuizSession) => boolean;
+}
+
 export interface Question {
   id: string;
   question: string;
