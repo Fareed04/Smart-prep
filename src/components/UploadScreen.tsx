@@ -7,6 +7,7 @@ interface UploadScreenProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onStartProcessing: (company: string) => void;
+  onGenerateMock: (company: string) => void;
   errorMessage?: string | null;
   isProcessing?: boolean;
   processingStatus?: string;
@@ -15,7 +16,7 @@ interface UploadScreenProps {
 
 const COMPANIES = ['KPMG', 'EY', 'PwC', 'Deloitte', 'Other'];
 
-export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage, isProcessing = false, processingStatus = "", progress = 0 }: UploadScreenProps) {
+export function UploadScreen({ files, setFiles, onStartProcessing, onGenerateMock, errorMessage, isProcessing = false, processingStatus = "", progress = 0 }: UploadScreenProps) {
   const [selectedCompany, setSelectedCompany] = useState('KPMG');
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(-1);
 
@@ -115,6 +116,19 @@ export function UploadScreen({ files, setFiles, onStartProcessing, errorMessage,
           </div>
         </div>
       </div>
+
+      {files.length === 0 && !isProcessing && (
+        <div className="text-center mt-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Don't have any past questions?</p>
+          <button
+            onClick={() => onGenerateMock(selectedCompany)}
+            className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center space-x-2 mx-auto"
+          >
+            <Loader2 className={cn("w-4 h-4", isProcessing ? "animate-spin" : "hidden")} />
+            <span>Generate Mock {selectedCompany} Assessment</span>
+          </button>
+        </div>
+      )}
 
       {files.length > 0 && (
         <div className="space-y-4">

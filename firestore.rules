@@ -39,7 +39,7 @@ service cloud.firestore {
     }
 
     function isValidQuizSession(data) {
-      return hasOnlyAllowedFields(['userId', 'score', 'correctAnswers', 'totalQuestions', 'timeTaken', 'categoriesAttempted', 'questions', 'answers', 'createdAt']) &&
+      return hasOnlyAllowedFields(['userId', 'score', 'correctAnswers', 'totalQuestions', 'timeTaken', 'categoriesAttempted', 'questions', 'answers', 'createdAt', 'company']) &&
              data.userId is string && data.userId.size() > 0 &&
              data.score is number && data.score >= 0 && data.score <= 100 &&
              data.correctAnswers is number && data.correctAnswers >= 0 &&
@@ -48,6 +48,7 @@ service cloud.firestore {
              data.categoriesAttempted is list && data.categoriesAttempted.size() <= 100 &&
              (!('questions' in data) || data.questions is string) &&
              (!('answers' in data) || data.answers is string) &&
+             (!('company' in data) || data.company is string) &&
              data.createdAt is timestamp;
     }
 

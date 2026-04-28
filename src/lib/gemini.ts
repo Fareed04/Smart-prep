@@ -5,6 +5,57 @@ import { PDFDocument } from "pdf-lib";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+export async function generateMockAssessment(company: string): Promise<Question[]> {
+  const prompt = `Generate a realistic, high-quality mock assessment test for ${company}.
+If the company is "PwC", specifically emulate the "PwC Cornerstone Assessment Nigeria" which is typically comprised of SHL or Predictive Index style questions encompassing Deductive Reasoning, Inductive Reasoning, Numerical Reasoning, and Work Style Preferences (Situational Judgement).
+
+Create exactly 15 unique questions spread evenly across the following categories based on typical Big 4 testing formats:
+- Numerical Reasoning (include data interpretation, percentages, ratios, probability)
+- Verbal Reasoning / Reading Comprehension
+- Logical / Inductive / Deductive Reasoning
+- Situational Judgement / Soft Skills
+
+Make the questions challenging, mimicking real assessment difficulty. Provide 4 or 5 options for each question.
+Ensure the final output is a JSON list.`;
+
+  try {
+    const apiPromise = ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: {
+        parts: [{ text: prompt }],
+      },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              answer: { type: Type.STRING },
+              explanation: { type: Type.STRING, description: "Detailed explanation of why the answer is correct." },
+              category: { type: Type.STRING, description: "One of: Numerical Reasoning, Verbal Reasoning, Logical Reasoning, Situational Judgement" },
+            },
+            required: ["question", "options", "answer", "explanation", "category"],
+          },
+        },
+      },
+    });
+
+    const response = await withTimeout(apiPromise, 180000, "Gemini API timeout while generating mock data");
+    const jsonStr = response.text?.trim() || "[]";
+    const questions = JSON.parse(jsonStr);
+    
+    // Add unique IDs
+    return questions.map((q: any, i: number) => ({ ...q, id: `mock-${company}-${Date.now()}-${i}`, company }));
+  } catch (error) {
+    console.error("Error generating mock assessment:", error);
+    throw new Error("Failed to generate mock assessment. Please try again.");
+  }
+}
+
 const PROMPT = `Act as a Senior Data Scientist and GMAT Tutor.
 Data Processing: Analyze the uploaded files. Extract unique questions. 
 
@@ -363,10 +414,10 @@ export function generateQuizFromPool(
   }
 
   if (category && category !== 'All') {
-    // If a specific category is selected, ignore quotas and just take up to 50
+    // If a specific category is selected, ignore quotas and just take up to 30
     const finalQuestions = masteryMode 
-      ? workingPool.slice(0, 50) 
-      : [...workingPool].sort(() => Math.random() - 0.5).slice(0, 50);
+      ? workingPool.slice(0, 30) 
+      : [...workingPool].sort(() => Math.random() - 0.5).slice(0, 30);
     
     // Final shuffle of the selected questions
     const fullyShuffled = [...finalQuestions].sort(() => Math.random() - 0.5);
@@ -422,10 +473,17 @@ export function generateQuizFromPool(
     remainingPool.push(...available.filter(a => !candidateIds.has(a.id)));
   }
 
-  // If we don't have 50 questions (because some categories were short),
+  // 2. Add ANY category that was present in the workingPool but completely missing from the quotas map
+  for (const [category, available] of Object.entries(grouped)) {
+    if (!(category in quotas)) {
+      remainingPool.push(...available);
+    }
+  }
+
+  // If we don't have 30 questions (because some categories were short),
   // fill the remaining spots from the rest of the pool
-  if (finalQuestions.length < 50 && remainingPool.length > 0) {
-    const needed = 50 - finalQuestions.length;
+  if (finalQuestions.length < 30 && remainingPool.length > 0) {
+    const needed = 30 - finalQuestions.length;
     // In mastery mode, remainingPool is also somewhat ordered by mastery
     const extra = masteryMode
       ? remainingPool.slice(0, needed)
@@ -434,7 +492,7 @@ export function generateQuizFromPool(
     finalQuestions.push(...extra);
   }
 
-  // Final shuffle of the 50 questions for the actual test experience
+  // Final shuffle of the 30 questions for the actual test experience
   const fullyShuffled = [...finalQuestions].sort(() => Math.random() - 0.5);
 
   // Assign fresh IDs for the quiz session

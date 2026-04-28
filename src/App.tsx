@@ -6,7 +6,7 @@ import { QuizScreen } from './components/QuizScreen';
 import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
-import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions } from './lib/gemini';
+import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -162,6 +162,58 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleGenerateMock = React.useCallback(async (company: string) => {
+    setAppState('processing');
+    setProgress(0);
+    setProcessingStatus(`Generating mock assessment for ${company}...`);
+    setErrorMessage(null);
+    setSelectedCompany(company);
+
+    try {
+      // Create a fake progress loop to show activity
+      let simProgress = 0;
+      const progressInterval = setInterval(() => {
+        simProgress += 5;
+        if (simProgress <= 90) {
+          setProgress(simProgress);
+        }
+      }, 500);
+
+      const mockQuestions = await generateMockAssessment(company);
+      clearInterval(progressInterval);
+      setProgress(100);
+      setProcessingStatus("Mock assessment generated successfully!");
+
+      const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
+      setExtractedPool(mergedPool);
+
+      if (user) {
+        setDoc(doc(db, 'questionPools', user.uid), { 
+          pool: JSON.stringify(mergedPool),
+          progress: JSON.stringify(questionProgress)
+        }).catch(console.error);
+      }
+
+      setTimeout(() => {
+        setQuizDuration(10);
+        setQuizState({
+          questions: mockQuestions,
+          currentIndex: 0,
+          answers: {},
+          isFinished: false,
+          timeRemaining: 10 * 60,
+          flaggedQuestions: []
+        });
+        setIsViewingPastReport(false);
+        setAppState('quiz');
+      }, 1000);
+    } catch (error) {
+      console.error("Mock generation failed:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to generate mock assessment. Please try again.");
+      setAppState('upload');
+    }
+  }, [extractedPool, questionProgress, user]);
 
   const handleStartProcessing = React.useCallback(async (company: string) => {
     if (files.length === 0) return;
@@ -454,6 +506,7 @@ export default function App() {
             files={files} 
             setFiles={setFiles} 
             onStartProcessing={handleStartProcessing} 
+            onGenerateMock={handleGenerateMock}
             errorMessage={errorMessage} 
             isProcessing={appState === 'processing'}
             processingStatus={processingStatus}

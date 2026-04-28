@@ -181,14 +181,14 @@ export function ReadyScreen({
             </div>
           </div>
 
-          {poolSize < 50 ? (
+          {poolSize < 30 ? (
             <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4 rounded-xl text-amber-800 dark:text-amber-300 text-sm">
-              <p className="font-medium">Selected pool size is {poolSize}/50.</p>
-              <p>You need at least 50 questions for a full simulation. Add more documents or adjust your filters!</p>
+              <p className="font-medium">Selected pool size is {poolSize}.</p>
+              <p>Real assessments typically have at least 30 questions. You can proceed with a shorter simulation or add more documents!</p>
             </div>
           ) : (
             <p className="text-slate-500 dark:text-slate-500">
-              Your simulation will consist of 50 questions selected from the <span className="font-semibold">{selectedCompany === 'All' ? 'entire' : selectedCompany}</span> pool
+              Your simulation will consist of up to 30 questions selected from the <span className="font-semibold">{selectedCompany === 'All' ? 'entire' : selectedCompany}</span> pool
               {selectedCategory !== 'All' && <span>, focusing on <span className="font-semibold">{selectedCategory}</span></span>}.
             </p>
           )}
