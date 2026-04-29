@@ -53,9 +53,10 @@ service cloud.firestore {
     }
 
     function isValidQuestionPool(data) {
-      return hasOnlyAllowedFields(['pool', 'progress']) &&
+      return hasOnlyAllowedFields(['pool', 'progress', 'activeSession']) &&
              data.pool is string &&
-             (!('progress' in data) || data.progress is string);
+             (!('progress' in data) || data.progress is string) &&
+             (!('activeSession' in data) || data.activeSession is string);
     }
 
     function isValidProfile(data) {

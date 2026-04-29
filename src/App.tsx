@@ -10,7 +10,7 @@ import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, 
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
 import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -106,6 +106,7 @@ export default function App() {
       
       if (currentUser) {
         // Fetch cloud pool and profile
+        let hasActiveSession = false;
         try {
           const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
           if (profileDoc.exists()) {
@@ -144,13 +145,24 @@ export default function App() {
                 console.error("Failed to parse progress from cloud", e);
               }
             }
+            if (data.activeSession) {
+              try {
+                const parsedSession = JSON.parse(data.activeSession);
+                setQuizState(parsedSession);
+                hasActiveSession = true;
+              } catch (e) {
+                console.error("Failed to parse active session from cloud", e);
+              }
+            }
           }
         } catch (e) {
           console.error("Error fetching cloud pool", e);
         }
 
         const savedAppState = localStorage.getItem(STORAGE_KEY_APP_STATE);
-        if (savedAppState && (savedAppState === 'quiz' || savedAppState === 'ready')) {
+        if (hasActiveSession) {
+          setAppState('quiz');
+        } else if (savedAppState && (savedAppState === 'quiz' || savedAppState === 'ready')) {
           setAppState(savedAppState as AppState);
         } else {
           setAppState('dashboard');
@@ -192,7 +204,7 @@ export default function App() {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
-        }).catch(console.error);
+        }, { merge: true }).catch(console.error);
       }
 
       setTimeout(() => {
@@ -243,7 +255,7 @@ export default function App() {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
-        }).catch(console.error);
+        }, { merge: true }).catch(console.error);
       }
 
       setAppState('ready');
@@ -269,8 +281,14 @@ export default function App() {
   }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
 
   const handleLeaveQuiz = React.useCallback(() => {
+    // Clear activeSession
+    if (user) {
+      updateDoc(doc(db, 'questionPools', user.uid), {
+        activeSession: deleteField()
+      }).catch(console.error);
+    }
     setAppState('ready');
-  }, []);
+  }, [user]);
 
   const handleRestart = React.useCallback(() => {
     setErrorMessage(null);
@@ -322,7 +340,7 @@ export default function App() {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: JSON.stringify(extractedPool),
         progress: JSON.stringify(newProgress)
-      }).catch(console.error);
+      }, { merge: true }).catch(console.error);
     }
   }, [questionProgress, user, extractedPool]);
 
@@ -363,6 +381,11 @@ export default function App() {
       
       setUserProfile(updatedProfile);
       setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch(console.error);
+
+      // Clear activeSession
+      updateDoc(doc(db, 'questionPools', user.uid), {
+        activeSession: deleteField()
+      }).catch(console.error);
 
       // Level up celebration!
       if (newLevel > userProfile.level) {

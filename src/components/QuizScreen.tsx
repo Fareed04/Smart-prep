@@ -5,6 +5,8 @@ import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
 import { cn } from '../lib/utils';
 import { Calculator } from './Calculator';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
 
 interface QuizScreenProps {
   state: QuizState;
@@ -29,6 +31,29 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
+
+  const stateRef = React.useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    const saveProgress = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser || isFinishing || stateRef.current.isFinished) return;
+      try {
+        await updateDoc(doc(db, 'questionPools', currentUser.uid), {
+           activeSession: JSON.stringify(stateRef.current)
+        });
+      } catch (error) {
+        console.error("Failed to auto-save progress", error);
+      }
+    };
+    
+    // Save progress periodically (e.g., every 15 seconds)
+    const saveInterval = setInterval(saveProgress, 15000);
+    return () => clearInterval(saveInterval);
+  }, [isFinishing]);
 
   const handleFinish = React.useCallback(() => {
     if (isFinishing) return;
