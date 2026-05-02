@@ -5,6 +5,66 @@ import { PDFDocument } from "pdf-lib";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+export async function generateStudyGuide(category: string, pdfFile: File | null = null): Promise<string> {
+  try {
+    const parts: any[] = [];
+    
+    parts.push(`You are a tutor and an expert in psychometric testing, specializing in ${category}. 
+Generate a comprehensive, structured study guide and best practices strategy document to help a user learn how to solve these types of questions quickly and accurately.
+The guide should include:
+- Core principles of the topic
+- Common question patterns and traps
+- Step-by-step strategies to solve questions as fast as possible
+- Time-saving tips and mental shortcuts
+- Example walk-throughs (provide 2-3 detailed examples)
+Write the guide in clear, engaging Markdown formatting.
+`);
+
+    if (pdfFile) {
+      parts.push(`The user has also uploaded a reference material/PDF. Please incorporate insights, strategies, or patterns from this material where relevant to enrich the guide:\n`);
+      
+      const fileName = pdfFile.name.toLowerCase();
+      
+      if (fileName.endsWith('.docx')) {
+        const arrayBuffer = await pdfFile.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        parts.push({ text: result.value || "Empty document" });
+      } else if (fileName.endsWith('.txt')) {
+        const text = await pdfFile.text();
+        parts.push({ text: text || "Empty document" });
+      } else {
+        const base64 = await fileToBase64(pdfFile);
+        let mimeType = pdfFile.type;
+        if (!mimeType) {
+          if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
+          else if (fileName.endsWith('.png')) mimeType = 'image/png';
+          else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+          else mimeType = 'text/plain';
+        }
+        parts.push({ inlineData: { data: base64, mimeType } });
+      }
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: parts,
+      config: {
+        temperature: 0.5,
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("No text returned from Gemini API");
+    }
+
+    return text;
+  } catch (error) {
+    console.error("Error generating study guide:", error);
+    throw new Error("Failed to generate study guide. Please try again.");
+  }
+}
+
 export async function generateMockAssessment(company: string): Promise<Question[]> {
   const prompt = `Generate a realistic, high-quality mock assessment test for ${company}.
 If the company is "PwC", specifically emulate the "PwC Cornerstone Assessment Nigeria" which is typically comprised of SHL or Predictive Index style questions encompassing Deductive Reasoning, Inductive Reasoning, Numerical Reasoning, and Work Style Preferences (Situational Judgement).

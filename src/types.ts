@@ -54,3 +54,12 @@ export interface QuizSession {
   answers?: string;
   createdAt: Date;
 }
+
+export interface StudyGuide {
+  id?: string;
+  userId: string;
+  title: string;
+  category: string;
+  content: string;
+  createdAt: Date;
+}

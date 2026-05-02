@@ -6,6 +6,7 @@ import { QuizScreen } from './components/QuizScreen';
 import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
+import { StudyHub } from './components/StudyHub';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db } from './lib/firebase';
@@ -14,7 +15,7 @@ import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase
 import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report';
+type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study';
 
 const STORAGE_KEY_STATE = 'smartprep_quiz_state';
 const STORAGE_KEY_POOL = 'smartprep_question_pool';
@@ -518,6 +519,7 @@ export default function App() {
               }
             }}
             onViewReport={handleViewReport}
+            onOpenStudyHub={() => setAppState('study')}
             errorMessage={errorMessage}
             pool={extractedPool}
             progress={questionProgress}
@@ -567,6 +569,12 @@ export default function App() {
             onDashboard={handleDashboard} 
             isViewingPastReport={isViewingPastReport}
             company={selectedCompany}
+          />
+        )}
+        {appState === 'study' && user && (
+          <StudyHub 
+            user={user}
+            onBack={() => setAppState('dashboard')}
           />
         )}
       </main>

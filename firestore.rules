@@ -69,12 +69,28 @@ service cloud.firestore {
              data.achievements is list;
     }
 
+    function isValidStudyGuide(data) {
+      return hasOnlyAllowedFields(['userId', 'title', 'category', 'content', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 &&
+             data.category is string &&
+             data.content is string &&
+             data.createdAt is timestamp;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
     match /profiles/{userId} {
       allow read: if isOwner(userId);
       allow write: if isOwner(userId) && isValidProfile(request.resource.data);
+    }
+
+    match /studyGuides/{guideId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidStudyGuide(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if false; // Study guides are immutable
     }
 
     match /quizSessions/{sessionId} {

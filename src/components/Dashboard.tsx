@@ -9,13 +9,14 @@ import { motion, AnimatePresence } from 'motion/react';
 interface DashboardProps {
   onStartNew: () => void;
   onViewReport: (session: QuizSession) => void;
+  onOpenStudyHub: () => void;
   errorMessage?: string | null;
   pool: Question[];
   progress: Record<string, QuestionProgress>;
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -103,20 +104,27 @@ export function Dashboard({ onStartNew, onViewReport, errorMessage, pool, progre
             <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your Big 4 assessment prep?</p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
           {userProfile && (
-            <div className="flex items-center space-x-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-100 dark:border-amber-800/50">
+            <div className="flex items-center space-x-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-100 dark:border-amber-800/50">
               <Flame className="w-5 h-5 fill-current" />
               <span className="font-bold text-lg">{userProfile.streak}</span>
-              <span className="text-xs font-medium uppercase tracking-wider">Day Streak</span>
+              <span className="text-xs font-medium uppercase tracking-wider hidden sm:inline">Day Streak</span>
             </div>
           )}
+          <button
+            onClick={onOpenStudyHub}
+            className="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+          >
+            <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span>Study Hub</span>
+          </button>
           <button
             onClick={onStartNew}
             className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md"
           >
             <Play className="w-5 h-5" />
-            <span>Start Simulation</span>
+            <span>Simulation</span>
           </button>
         </div>
       </div>
