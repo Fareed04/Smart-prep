@@ -9,7 +9,7 @@ export async function generateStudyGuide(category: string, pdfFile: File | null 
   try {
     const parts: any[] = [];
     
-    parts.push(`You are a tutor and an expert in psychometric testing, specializing in ${category}. 
+    parts.push({text: `You are a tutor and an expert in psychometric testing, specializing in ${category}. 
 Generate a comprehensive, structured study guide and best practices strategy document to help a user learn how to solve these types of questions quickly and accurately.
 The guide should include:
 - Core principles of the topic
@@ -18,10 +18,10 @@ The guide should include:
 - Time-saving tips and mental shortcuts
 - Example walk-throughs (provide 2-3 detailed examples)
 Write the guide in clear, engaging Markdown formatting.
-`);
+`});
 
     if (pdfFile) {
-      parts.push(`The user has also uploaded a reference material/PDF. Please incorporate insights, strategies, or patterns from this material where relevant to enrich the guide:\n`);
+      parts.push({text: `The user has also uploaded a reference material/PDF. Please incorporate insights, strategies, or patterns from this material where relevant to enrich the guide:\n`});
       
       const fileName = pdfFile.name.toLowerCase();
       
@@ -32,22 +32,46 @@ Write the guide in clear, engaging Markdown formatting.
       } else if (fileName.endsWith('.txt')) {
         const text = await pdfFile.text();
         parts.push({ text: text || "Empty document" });
+      } else if (fileName.endsWith('.pdf')) {
+        let finalFile = pdfFile;
+        try {
+          const arrayBuffer = await pdfFile.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+          const totalPages = pdfDoc.getPageCount();
+          const MAX_PAGES = 150; // Truncate to first 150 pages to stay within 1 million tokens
+          if (totalPages > MAX_PAGES) {
+            console.log(`[Gemini] PDF is ${totalPages} pages. Truncating to first ${MAX_PAGES} pages for study guide...`);
+            const chunkDoc = await PDFDocument.create();
+            const pageIndices = Array.from({ length: MAX_PAGES }, (_, idx) => idx);
+            const copiedPages = await chunkDoc.copyPages(pdfDoc, pageIndices);
+            copiedPages.forEach(p => chunkDoc.addPage(p));
+            const chunkBytes = await chunkDoc.save();
+            finalFile = new File([chunkBytes], "truncated.pdf", { type: 'application/pdf' });
+          }
+        } catch (err) {
+          console.error("Error processing PDF with pdf-lib, falling back to original", err);
+        }
+        
+        const base64 = await fileToBase64(finalFile);
+        let mimeType = finalFile.type || 'application/pdf';
+        parts.push({ inlineData: { data: base64.split(",")[1], mimeType } });
       } else {
         const base64 = await fileToBase64(pdfFile);
         let mimeType = pdfFile.type;
         if (!mimeType) {
-          if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
-          else if (fileName.endsWith('.png')) mimeType = 'image/png';
+          if (fileName.endsWith('.png')) mimeType = 'image/png';
           else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
           else mimeType = 'text/plain';
         }
-        parts.push({ inlineData: { data: base64, mimeType } });
+        parts.push({ inlineData: { data: base64.split(",")[1], mimeType } });
       }
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: parts,
+      model: 'gemini-3.1-pro-preview',
+      contents: {
+        parts: parts,
+      },
       config: {
         temperature: 0.5,
       }
@@ -59,8 +83,12 @@ Write the guide in clear, engaging Markdown formatting.
     }
 
     return text;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating study guide:", error);
+    const errorStr = typeof error === 'object' ? JSON.stringify(error) : String(error);
+    if (error?.message?.includes("exceeds the maximum number of tokens allowed") || errorStr.includes("exceeds the maximum number of tokens allowed")) {
+      throw new Error("The uploaded document is too large (exceeds the 1 million token limit). Please upload a smaller file or a specific chapter.");
+    }
     throw new Error("Failed to generate study guide. Please try again.");
   }
 }

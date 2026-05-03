@@ -9,7 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
-import { auth, logOut, db } from './lib/firebase';
+import { auth, logOut, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
 import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
@@ -124,7 +124,16 @@ export default function App() {
             await setDoc(doc(db, 'profiles', currentUser.uid), initialProfile);
             setUserProfile(initialProfile);
           }
+        } catch (e) {
+          console.error("Error fetching/setting cloud profile", e);
+          try {
+            handleFirestoreError(e, OperationType.GET, `profiles/${currentUser.uid}`);
+          } catch (err: any) {
+            setErrorMessage(err.message);
+          }
+        }
 
+        try {
           const poolDoc = await getDoc(doc(db, 'questionPools', currentUser.uid));
           if (poolDoc.exists()) {
             const data = poolDoc.data();
@@ -156,8 +165,13 @@ export default function App() {
               }
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error("Error fetching cloud pool", e);
+          try {
+            handleFirestoreError(e, OperationType.GET, `questionPools/${currentUser.uid}`);
+          } catch (err: any) {
+            setErrorMessage(err.message);
+          }
         }
 
         const savedAppState = localStorage.getItem(STORAGE_KEY_APP_STATE);
@@ -205,7 +219,14 @@ export default function App() {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
-        }, { merge: true }).catch(console.error);
+        }, { merge: true }).catch((err) => {
+          console.error(err);
+          try {
+            handleFirestoreError(err, OperationType.WRITE, 'questionPools');
+          } catch (e: any) {
+            setErrorMessage(e.message);
+          }
+        });
       }
 
       setTimeout(() => {
@@ -256,7 +277,14 @@ export default function App() {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
-        }, { merge: true }).catch(console.error);
+        }, { merge: true }).catch((err) => {
+          console.error(err);
+          try {
+            handleFirestoreError(err, OperationType.WRITE, 'questionPools');
+          } catch (e: any) {
+            setErrorMessage(e.message);
+          }
+        });
       }
 
       setAppState('ready');
@@ -341,7 +369,14 @@ export default function App() {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: JSON.stringify(extractedPool),
         progress: JSON.stringify(newProgress)
-      }, { merge: true }).catch(console.error);
+      }, { merge: true }).catch((err) => {
+        console.error(err);
+        try {
+          handleFirestoreError(err, OperationType.WRITE, 'questionPools');
+        } catch (e: any) {
+          setErrorMessage(e.message);
+        }
+      });
     }
   }, [questionProgress, user, extractedPool]);
 
@@ -381,12 +416,26 @@ export default function App() {
       };
       
       setUserProfile(updatedProfile);
-      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch(console.error);
+      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
+        console.error(err);
+        try {
+          handleFirestoreError(err, OperationType.WRITE, 'profiles');
+        } catch (e: any) {
+          setErrorMessage(e.message);
+        }
+      });
 
       // Clear activeSession
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
-      }).catch(console.error);
+      }).catch((err) => {
+        console.error(err);
+        try {
+          handleFirestoreError(err, OperationType.UPDATE, 'questionPools');
+        } catch (e: any) {
+          setErrorMessage(e.message);
+        }
+      });
 
       // Level up celebration!
       if (newLevel > userProfile.level) {

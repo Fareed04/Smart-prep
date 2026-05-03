@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { StudyGuide } from '../types';
 import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
@@ -78,13 +78,16 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
         content: generatedContent,
         createdAt: serverTimestamp()
       });
-
       setIsCreating(false);
       setNewTitle('');
       setPdfFile(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setError("Failed to generate study guide. Please try again.");
+      try {
+        handleFirestoreError(e, OperationType.WRITE, 'studyGuides');
+      } catch (err: any) {
+        setError(err.message);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -99,7 +102,11 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
         }
       } catch (e) {
         console.error(e);
-        setError("Failed to delete study guide.");
+        try {
+          handleFirestoreError(e, OperationType.DELETE, `studyGuides/${guideId}`);
+        } catch (err: any) {
+          setError(err.message);
+        }
       }
     }
   };
@@ -218,7 +225,14 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
                   accept=".pdf"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setPdfFile(file);
+                    if (file) {
+                      if (file.size > 25 * 1024 * 1024) {
+                        setError(`File ${file.name} is too large (>${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a smaller file or specific chapter (max 25MB).`);
+                        return;
+                      }
+                      setError(null);
+                      setPdfFile(file);
+                    }
                   }}
                 />
               </label>

@@ -3,7 +3,7 @@ import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap } from 'lucid
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface ReportScreenProps {
   state: QuizState;
@@ -19,6 +19,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   const score = Math.round((correctAnswers / totalQuestions) * 100);
   const timeTaken = (60 * 60) - state.timeRemaining;
   const [isSaved, setIsSaved] = useState(isViewingPastReport);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saveInProgress = React.useRef(false);
 
   // XP is calculated in App.tsx but we can mirror the logic here for display
@@ -57,6 +58,11 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
       } catch (error) {
         console.error("Error saving quiz session:", error);
         saveInProgress.current = false;
+        try {
+          handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
+        } catch (e: any) {
+          setSaveError(e.message);
+        }
       }
     };
 
@@ -108,6 +114,13 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Simulation Complete</h1>
         <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company || 'Big 4'} assessment.</p>
       </div>
+
+      {saveError && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 p-4 rounded-xl flex items-start space-x-3">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>Warning: {saveError} (Your results are shown below but might not be saved to your history).</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">

@@ -6,7 +6,7 @@ import { Question, QuizState } from '../types';
 import { cn } from '../lib/utils';
 import { Calculator } from './Calculator';
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
 
 interface QuizScreenProps {
   state: QuizState;
@@ -40,13 +40,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   useEffect(() => {
     const saveProgress = async () => {
       const currentUser = auth.currentUser;
-      if (!currentUser || isFinishing || stateRef.current.isFinished) return;
+      if (!currentUser || isFinishing || stateRef.current.isFinished || isFirestoreQuotaExceeded) return;
       try {
         await updateDoc(doc(db, 'questionPools', currentUser.uid), {
            activeSession: JSON.stringify(stateRef.current)
         });
       } catch (error) {
         console.error("Failed to auto-save progress", error);
+        try {
+          handleFirestoreError(error, OperationType.UPDATE, `questionPools/${currentUser.uid}`);
+        } catch (e) {
+          // Just log it for auto-save, don't interrupt user
+          console.error("Critical Firestore Error during auto-save:", e);
+        }
       }
     };
     

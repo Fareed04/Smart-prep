@@ -28,3 +28,53 @@ export const logOut = async () => {
     console.error("Error signing out", error);
   }
 };
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+  }
+}
+
+export let isFirestoreQuotaExceeded = false;
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const isQuotaError = (error as any)?.message?.includes("Quota exceeded") || (error as any)?.code === 'resource-exhausted';
+  
+  if (isQuotaError) {
+    isFirestoreQuotaExceeded = true;
+    const quotaMsg = "Daily free database quota exceeded. This limit resets every 24 hours. Please try again tomorrow.";
+    console.error(quotaMsg);
+    throw new Error(quotaMsg);
+  }
+
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  
+  const errorMessage = JSON.stringify(errInfo);
+  console.error('Firestore Error: ', errorMessage);
+  throw new Error(errorMessage);
+}

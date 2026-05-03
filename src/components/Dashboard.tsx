@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
 import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star } from 'lucide-react';
 import { format } from 'date-fns';
@@ -39,6 +39,13 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
       setLoading(false);
     }, (error) => {
       console.error("Error fetching sessions:", error);
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'quizSessions');
+      } catch (e: any) {
+        // App.tsx will handle the errorMessage via state if we wanted to be perfectly clean,
+        // but let's just log it here for now or we could pass a setError to Dashboard.
+        console.error("Dashboard Quota/Firestore Error:", e.message);
+      }
       setLoading(false);
     });
 
