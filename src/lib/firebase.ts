@@ -51,13 +51,36 @@ export interface FirestoreErrorInfo {
 }
 
 export let isFirestoreQuotaExceeded = false;
+const quotaListeners: ((status: boolean) => void)[] = [];
+
+export function onFirestoreQuotaStateChange(listener: (status: boolean) => void) {
+  quotaListeners.push(listener);
+  return () => {
+    const index = quotaListeners.indexOf(listener);
+    if (index > -1) quotaListeners.splice(index, 1);
+  };
+}
+
+function notifyQuotaStatus(status: boolean) {
+  isFirestoreQuotaExceeded = status;
+  quotaListeners.forEach(listener => listener(status));
+}
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const isQuotaError = (error as any)?.message?.includes("Quota exceeded") || (error as any)?.code === 'resource-exhausted';
+  const errorMsg = (error as any)?.message || "";
+  const errorCode = (error as any)?.code || "";
+  
+  const isQuotaError = 
+    errorMsg.includes("Quota exceeded") || 
+    errorCode === 'resource-exhausted' ||
+    errorMsg.includes("quota limit") ||
+    errorMsg.includes("backoff delay");
   
   if (isQuotaError) {
-    isFirestoreQuotaExceeded = true;
-    const quotaMsg = "Daily free database quota exceeded. This limit resets every 24 hours. Please try again tomorrow.";
+    if (!isFirestoreQuotaExceeded) {
+      notifyQuotaStatus(true);
+    }
+    const quotaMsg = "Daily free database quota exceeded. Progress will be saved locally but won't sync to the cloud until tomorrow.";
     console.error(quotaMsg);
     throw new Error(quotaMsg);
   }

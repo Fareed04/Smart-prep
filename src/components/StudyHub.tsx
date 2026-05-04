@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
 import { StudyGuide } from '../types';
 import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
@@ -52,7 +52,11 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching study guides:", error);
-      setError("Failed to load study guides.");
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'studyGuides');
+      } catch (err: any) {
+        setError(err.message);
+      }
       setLoading(false);
     });
 
@@ -62,6 +66,11 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
   const handleGenerate = async () => {
     if (!newTitle.trim()) {
       setError("Please provide a title for the study guide.");
+      return;
+    }
+
+    if (isFirestoreQuotaExceeded) {
+      setError("Database quota exceeded. You cannot save new study guides to the cloud at this time.");
       return;
     }
 
@@ -226,8 +235,8 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      if (file.size > 25 * 1024 * 1024) {
-                        setError(`File ${file.name} is too large (>${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a smaller file or specific chapter (max 25MB).`);
+                      if (file.size > 35 * 1024 * 1024) {
+                        setError(`File ${file.name} is too large (>${(file.size / (1024 * 1024)).toFixed(1)}MB). Please upload a smaller file or specific chapter (max 35MB).`);
                         return;
                       }
                       setError(null);

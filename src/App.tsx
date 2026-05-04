@@ -9,7 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
-import { auth, logOut, db, handleFirestoreError, OperationType } from './lib/firebase';
+import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
 import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
@@ -47,6 +47,17 @@ export default function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isViewingPastReport, setIsViewingPastReport] = useState(false);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(initialQuotaStatus);
+
+  // Firestore Quota Listener
+  useEffect(() => {
+    return onFirestoreQuotaStateChange((status) => {
+      setIsQuotaExceeded(status);
+      if (status) {
+        setErrorMessage("Notice: Cloud database quota exceeded. Your progress will be saved locally in this browser, and we will try to sync it to the cloud once limits reset (usually every 24 hours).");
+      }
+    });
+  }, []);
 
   // Load saved state on mount (Local Storage)
   useEffect(() => {
@@ -215,7 +226,7 @@ export default function App() {
       const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
       setExtractedPool(mergedPool);
 
-      if (user) {
+      if (user && !isQuotaExceeded) {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
@@ -256,44 +267,54 @@ export default function App() {
     setProcessingStatus("Initializing...");
     setErrorMessage(null);
     
+    let currentPool = [...extractedPool];
+
     try {
-      const newQuestions = await extractQuestionsFromFiles(files, (p, status) => {
-        setProgress(p);
-        if (status) setProcessingStatus(status);
-      }, company);
+      const resultQuestions = await extractQuestionsFromFiles(
+        files, 
+        (p, status) => {
+          setProgress(p);
+          if (status) setProcessingStatus(status);
+        }, 
+        company,
+        (batch) => {
+          // Incremental update
+          currentPool = deduplicateQuestions([...currentPool, ...batch]);
+          setExtractedPool(currentPool);
+          
+          // Save to cloud incrementally
+          if (user && !isQuotaExceeded) {
+            setDoc(doc(db, 'questionPools', user.uid), { 
+              pool: JSON.stringify(currentPool),
+              progress: JSON.stringify(questionProgress)
+            }, { merge: true }).catch(err => {
+              console.error("Incremental sync failed", err);
+              // Don't interrupt processing for a sync failure, just log it
+            });
+          }
+        },
+        extractedPool // Pass existing pool for intelligent skipping
+      );
       
-      if (newQuestions.length === 0) {
+      if (currentPool.length === 0 && resultQuestions.length === 0) {
         setErrorMessage("Could not extract any questions from the provided files. Please ensure they contain readable text.");
         setAppState('upload');
         return;
       }
 
-      // Merge with existing pool and deduplicate
-      const mergedPool = deduplicateQuestions([...extractedPool, ...newQuestions]);
-      setExtractedPool(mergedPool);
-      
-      // Save to cloud so it's available on other devices
-      if (user) {
-        setDoc(doc(db, 'questionPools', user.uid), { 
-          pool: JSON.stringify(mergedPool),
-          progress: JSON.stringify(questionProgress)
-        }, { merge: true }).catch((err) => {
-          console.error(err);
-          try {
-            handleFirestoreError(err, OperationType.WRITE, 'questionPools');
-          } catch (e: any) {
-            setErrorMessage(e.message);
-          }
-        });
-      }
-
       setAppState('ready');
     } catch (error) {
       console.error("Processing failed:", error);
-      setErrorMessage(error instanceof Error ? `Processing failed: ${error.message}` : "An error occurred while processing the files. Please try again.");
-      setAppState('upload');
+      // If we already got some questions, we can let them stay in 'ready' state instead of going back to 'upload'
+      if (currentPool.length > extractedPool.length) {
+        setErrorMessage(`Note: Processing was interrupted (${error instanceof Error ? error.message : "Error"}), but some questions were saved.`);
+        setAppState('ready');
+      } else {
+        setErrorMessage(error instanceof Error ? `Processing failed: ${error.message}` : "An error occurred while processing the files. Please try again.");
+        setAppState('upload');
+      }
     }
-  }, [files, extractedPool, questionProgress, user]);
+  }, [files, extractedPool, questionProgress, user, isQuotaExceeded]);
 
   const handleStartQuiz = React.useCallback(() => {
     const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory);
@@ -311,10 +332,17 @@ export default function App() {
 
   const handleLeaveQuiz = React.useCallback(() => {
     // Clear activeSession
-    if (user) {
+    if (user && !isQuotaExceeded) {
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
-      }).catch(console.error);
+      }).catch((err) => {
+        console.error(err);
+        try {
+          handleFirestoreError(err, OperationType.UPDATE, 'questionPools');
+        } catch (e: any) {
+          setErrorMessage(e.message);
+        }
+      });
     }
     setAppState('ready');
   }, [user]);
@@ -365,7 +393,7 @@ export default function App() {
     });
     
     setQuestionProgress(newProgress);
-    if (user) {
+    if (user && !isQuotaExceeded) {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: JSON.stringify(extractedPool),
         progress: JSON.stringify(newProgress)
@@ -387,7 +415,7 @@ export default function App() {
     const correctCount = quizState.questions.filter(q => quizState.answers[q.id] === q.answer).length;
     const gainedXp = (correctCount * 50) + 200; // 50 per correct, 200 for finishing
     
-    if (user && userProfile) {
+    if (user && userProfile && !isQuotaExceeded) {
       const newXp = userProfile.xp + gainedXp;
       const newLevel = Math.floor(newXp / 1000) + 1;
       

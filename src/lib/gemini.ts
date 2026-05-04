@@ -251,16 +251,23 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
 export async function extractQuestionsFromFiles(
   files: File[], 
   onProgress?: (progress: number, status?: string) => void,
-  company?: string
+  company?: string,
+  onQuestionsExtracted?: (newQuestions: Question[]) => void,
+  existingQuestions: Question[] = [] // Support resumption by checking existing pool
 ): Promise<Question[]> {
   const allQuestions: Question[] = [];
   const batchSize = 1; // Process one file at a time to avoid payload limits and timeouts
   
-  // Filter out empty files and files that are too large for the proxy (approx 15MB limit)
+  // Fingerprint existing questions to avoid duplicates in real-time
+  const existingTexts = new Set(
+    existingQuestions.map(q => q.question.trim().toLowerCase().replace(/[^a-z0-9]/g, ""))
+  );
+  
+  // Filter out empty files and files that are too large for the proxy (approx 35MB limit)
   let validFiles = files.filter(f => {
     if (f.size === 0) return false;
-    if (f.size > 15 * 1024 * 1024) {
-      console.warn(`File ${f.name} is too large (>15MB) and may fail. Skipping.`);
+    if (f.size > 35 * 1024 * 1024) {
+      console.warn(`File ${f.name} is too large (>35MB) and may fail. Skipping.`);
       return false;
     }
     // Basic check for very small PDFs which are often invalid
@@ -272,8 +279,8 @@ export async function extractQuestionsFromFiles(
   });
   
   if (validFiles.length === 0) {
-    if (files.some(f => f.size > 15 * 1024 * 1024)) {
-      throw new Error("The files you uploaded are too large (>15MB). Please compress them or split them into smaller parts.");
+    if (files.some(f => f.size > 35 * 1024 * 1024)) {
+      throw new Error("The files you uploaded are too large (>35MB). Please compress them or split them into smaller parts.");
     }
     console.warn("No valid files to process (files might be empty).");
     return [];
@@ -405,7 +412,31 @@ export async function extractQuestionsFromFiles(
       console.log(`[Gemini] Sending batch to AI...`);
       const parsed = await processWithGemini(parts);
       console.log(`[Gemini] AI response received. Extracted ${parsed.length} questions.`);
-      allQuestions.push(...parsed);
+      
+      // Filter out duplicates against existing pool in real-time
+      const filteredBatch = parsed.filter(q => {
+        const fingerprint = q.question.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (existingTexts.has(fingerprint)) {
+          return false;
+        }
+        existingTexts.add(fingerprint);
+        return true;
+      });
+
+      console.log(`[Gemini] After deduplication, ${filteredBatch.length} new questions remain.`);
+
+      const newQuestions = filteredBatch.map((q, idx) => ({ 
+        ...q, 
+        id: `pool-${allQuestions.length + idx}-${Date.now()}`, 
+        company 
+      }));
+      
+      if (newQuestions.length > 0) {
+        allQuestions.push(...newQuestions);
+        if (onQuestionsExtracted) {
+          onQuestionsExtracted(newQuestions);
+        }
+      }
     } catch (e: any) {
       console.error("Failed to process batch", e);
       
@@ -459,8 +490,7 @@ export async function extractQuestionsFromFiles(
   // Deduplicate based on question text (simple approach)
   const uniqueQuestions = deduplicateQuestions(allQuestions);
   
-  // Return the entire pool of unique questions with company tag
-  return uniqueQuestions.map((q, i) => ({ ...q, id: `pool-${i}`, company }));
+  return uniqueQuestions;
 }
 
 export function generateQuizFromPool(

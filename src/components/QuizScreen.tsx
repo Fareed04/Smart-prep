@@ -344,8 +344,11 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
               </div>
               <div className="space-y-2 max-w-full overflow-hidden">
                 <h3 className="font-semibold text-amber-900 dark:text-amber-300">AI Explanation & Strategy</h3>
-                <div className="text-amber-800 dark:text-amber-200/80 leading-relaxed whitespace-pre-wrap prose prose-amber dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <div className="text-amber-900 dark:text-amber-300 prose prose-amber dark:prose-invert max-w-none prose-p:my-2 prose-li:my-1 prose-strong:text-amber-900 dark:prose-strong:text-amber-200 prose-code:text-amber-900 dark:prose-code:text-amber-200 prose-code:bg-amber-100 dark:prose-code:bg-amber-900/50 prose-code:px-1 prose-code:rounded">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={MarkdownComponents}
+                  >
                     {currentQuestion.explanation}
                   </ReactMarkdown>
                 </div>
