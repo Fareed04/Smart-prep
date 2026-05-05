@@ -303,27 +303,27 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             <span>Previous</span>
           </button>
 
-          {!isAnswerChecked ? (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <button
-              onClick={handleCheckAnswer}
-              disabled={!selectedOption || isPaused}
-              className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md w-full sm:w-auto"
+              onClick={() => setShowExplanation(!showExplanation)}
+              disabled={isPaused}
+              className={cn(
+                "flex items-center justify-center space-x-2 px-6 py-3 font-medium rounded-xl transition-colors disabled:opacity-50 w-full sm:w-auto",
+                showExplanation ? "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              )}
             >
-              Check Answer
+              <Lightbulb className={cn("w-5 h-5", showExplanation ? "text-amber-600 dark:text-amber-400" : "text-amber-500")} />
+              <span>{showExplanation ? 'Hide Explanation' : 'Show Explanation'}</span>
             </button>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            {!isAnswerChecked ? (
               <button
-                onClick={() => setShowExplanation(!showExplanation)}
-                disabled={isPaused}
-                className={cn(
-                  "flex items-center justify-center space-x-2 px-6 py-3 font-medium rounded-xl transition-colors disabled:opacity-50 w-full sm:w-auto",
-                  showExplanation ? "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                )}
+                onClick={handleCheckAnswer}
+                disabled={!selectedOption || isPaused}
+                className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md w-full sm:w-auto"
               >
-                <Lightbulb className={cn("w-5 h-5", showExplanation ? "text-amber-600 dark:text-amber-400" : "text-amber-500")} />
-                <span>Work Smarter</span>
+                Check Answer
               </button>
+            ) : (
               <button
                 onClick={handleNext}
                 disabled={isPaused}
@@ -332,8 +332,8 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
                 <span>{state.currentIndex === state.questions.length - 1 ? 'Finish' : 'Next'}</span>
                 <ChevronRight className="w-5 h-5" />
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {showExplanation && (

@@ -9,7 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
-import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
+import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
 import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
@@ -226,7 +226,7 @@ export default function App() {
       const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
       setExtractedPool(mergedPool);
 
-      if (user && !isQuotaExceeded) {
+      if (user && !isFirestoreQuotaExceeded) {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
@@ -283,13 +283,18 @@ export default function App() {
           setExtractedPool(currentPool);
           
           // Save to cloud incrementally
-          if (user && !isQuotaExceeded) {
+          if (user && !isFirestoreQuotaExceeded) {
             setDoc(doc(db, 'questionPools', user.uid), { 
               pool: JSON.stringify(currentPool),
               progress: JSON.stringify(questionProgress)
             }, { merge: true }).catch(err => {
               console.error("Incremental sync failed", err);
-              // Don't interrupt processing for a sync failure, just log it
+              // Call handleFirestoreError so quota state updates
+              try {
+                handleFirestoreError(err, OperationType.WRITE, 'questionPools');
+              } catch (e: any) {
+                // Ignore the UI error throw from handleFirestoreError during background sync
+              }
             });
           }
         },
@@ -314,7 +319,7 @@ export default function App() {
         setAppState('upload');
       }
     }
-  }, [files, extractedPool, questionProgress, user, isQuotaExceeded]);
+  }, [files, extractedPool, questionProgress, user]);
 
   const handleStartQuiz = React.useCallback(() => {
     const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory);
@@ -332,7 +337,7 @@ export default function App() {
 
   const handleLeaveQuiz = React.useCallback(() => {
     // Clear activeSession
-    if (user && !isQuotaExceeded) {
+    if (user && !isFirestoreQuotaExceeded) {
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
       }).catch((err) => {
@@ -393,7 +398,7 @@ export default function App() {
     });
     
     setQuestionProgress(newProgress);
-    if (user && !isQuotaExceeded) {
+    if (user && !isFirestoreQuotaExceeded) {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: JSON.stringify(extractedPool),
         progress: JSON.stringify(newProgress)
@@ -415,7 +420,7 @@ export default function App() {
     const correctCount = quizState.questions.filter(q => quizState.answers[q.id] === q.answer).length;
     const gainedXp = (correctCount * 50) + 200; // 50 per correct, 200 for finishing
     
-    if (user && userProfile && !isQuotaExceeded) {
+    if (user && userProfile && !isFirestoreQuotaExceeded) {
       const newXp = userProfile.xp + gainedXp;
       const newLevel = Math.floor(newXp / 1000) + 1;
       
@@ -486,11 +491,18 @@ export default function App() {
     setQuestionProgress({});
     
     // Clear from cloud
-    if (user) {
+    if (user && !isFirestoreQuotaExceeded) {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: "[]",
         progress: "{}"
-      }).catch(console.error);
+      }).catch((err) => {
+        console.error(err);
+        try {
+          handleFirestoreError(err, OperationType.WRITE, 'questionPools');
+        } catch (e: any) {
+          setErrorMessage(e.message);
+        }
+      });
     }
 
     setErrorMessage(null);

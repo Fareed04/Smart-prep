@@ -42,7 +42,9 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    let unsubscribe: () => void;
+    
+    unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -58,9 +60,12 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
         setError(err.message);
       }
       setLoading(false);
+      if (unsubscribe) unsubscribe();
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user.uid]);
 
   const handleGenerate = async () => {

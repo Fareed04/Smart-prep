@@ -29,7 +29,9 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    let unsubscribe: () => void;
+    
+    unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -47,9 +49,12 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
         console.error("Dashboard Quota/Firestore Error:", e.message);
       }
       setLoading(false);
+      if (unsubscribe) unsubscribe();
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const averageScore = sessions.length > 0 
