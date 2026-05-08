@@ -29,8 +29,17 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [isPaused, setIsPaused] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
+  const [hintCooldown, setHintCooldown] = useState(0);
+  const [activeHints, setActiveHints] = useState<Record<string, boolean>>({});
 
   const currentQuestion = state.questions[state.currentIndex];
+
+  useEffect(() => {
+    if (hintCooldown > 0 && !isPaused) {
+      const timer = setTimeout(() => setHintCooldown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hintCooldown, isPaused]);
 
   const stateRef = React.useRef(state);
   useEffect(() => {
@@ -315,6 +324,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
               <Lightbulb className={cn("w-5 h-5", showExplanation ? "text-amber-600 dark:text-amber-400" : "text-amber-500")} />
               <span>{showExplanation ? 'Hide Explanation' : 'Show Explanation'}</span>
             </button>
+            {!isAnswerChecked && (
+              <button
+                onClick={() => {
+                  setActiveHints(prev => ({ ...prev, [currentQuestion.id]: true }));
+                  setHintCooldown(30);
+                }}
+                disabled={isPaused || hintCooldown > 0 || activeHints[currentQuestion.id]}
+                className="flex items-center justify-center space-x-2 px-6 py-3 font-medium rounded-xl border border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors disabled:opacity-50 w-full sm:w-auto"
+              >
+                <Lightbulb className="w-5 h-5" />
+                <span>{activeHints[currentQuestion.id] ? 'Hint Active' : hintCooldown > 0 ? `Hint (${hintCooldown}s)` : 'Get Hint'}</span>
+              </button>
+            )}
             {!isAnswerChecked ? (
               <button
                 onClick={handleCheckAnswer}
@@ -335,6 +357,22 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             )}
           </div>
         </div>
+
+        {activeHints[currentQuestion.id] && !showExplanation && (
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700/50 rounded-2xl p-6 animate-in slide-in-from-top-4 mt-6">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg shrink-0">
+                <Lightbulb className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div className="space-y-2 max-w-full overflow-hidden">
+                <h3 className="font-semibold text-indigo-900 dark:text-indigo-300">Subtle Clue</h3>
+                <div className="text-indigo-900 dark:text-indigo-300 prose prose-indigo dark:prose-invert max-w-none">
+                   {currentQuestion.explanation.split('.')[0]}.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showExplanation && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-6 animate-in slide-in-from-top-4">
