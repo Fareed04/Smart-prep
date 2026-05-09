@@ -169,8 +169,28 @@ export default function App() {
             if (data.activeSession) {
               try {
                 const parsedSession = JSON.parse(data.activeSession);
-                setQuizState(parsedSession);
-                hasActiveSession = true;
+                const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
+                
+                // For legacy sessions without an ID, we'll check if we generally cleared a legacy session recently.
+                const isSessionClearedLocally = (parsedSession.sessionId && cleared.includes(parsedSession.sessionId)) || 
+                                                (!parsedSession.sessionId && localStorage.getItem('smartprep_cleared_legacy') === 'true');
+                
+                if (!isSessionClearedLocally) {
+                  // Give it an ID now so we can clear it later if needed
+                  if (!parsedSession.sessionId) {
+                    parsedSession.sessionId = "legacy_" + Math.random().toString(36).substring(2, 10);
+                  }
+                  setQuizState(parsedSession);
+                  hasActiveSession = true;
+                } else {
+                  console.log("Ignoring cloud session because it was cleared locally.");
+                  // Make an attempt to clean up the zombie session
+                  try {
+                    updateDoc(doc(db, 'questionPools', currentUser.uid), {
+                      activeSession: deleteField()
+                    });
+                  } catch(e) {}
+                }
               } catch (e) {
                 console.error("Failed to parse active session from cloud", e);
               }
@@ -324,6 +344,7 @@ export default function App() {
   const handleStartQuiz = React.useCallback(() => {
     const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory);
     setQuizState({
+      sessionId: Math.random().toString(36).substring(2, 15),
       questions: quizQuestions,
       currentIndex: 0,
       answers: {},
@@ -336,21 +357,27 @@ export default function App() {
   }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
 
   const handleLeaveQuiz = React.useCallback(() => {
-    // Clear activeSession
-    if (user && !isFirestoreQuotaExceeded) {
+    if (quizState.sessionId) {
+      const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
+      cleared.push(quizState.sessionId);
+      localStorage.setItem('smartprep_cleared_sessions', JSON.stringify(cleared.slice(-10))); // keep last 10
+      if (quizState.sessionId.startsWith('legacy_')) {
+        localStorage.setItem('smartprep_cleared_legacy', 'true');
+      }
+    } else {
+      localStorage.setItem('smartprep_cleared_legacy', 'true');
+    }
+    
+    setQuizState(prev => ({ ...prev, isFinished: true })); // Force clear local storage
+    if (user) {
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
       }).catch((err) => {
-        console.error(err);
-        try {
-          handleFirestoreError(err, OperationType.UPDATE, 'questionPools');
-        } catch (e: any) {
-          setErrorMessage(e.message);
-        }
+        console.error("Failed to clear active session from cloud", err);
       });
     }
     setAppState('ready');
-  }, [user]);
+  }, [user, quizState.sessionId]);
 
   const handleRestart = React.useCallback(() => {
     setErrorMessage(null);
@@ -451,23 +478,6 @@ export default function App() {
       setUserProfile(updatedProfile);
       setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
         console.error(err);
-        try {
-          handleFirestoreError(err, OperationType.WRITE, 'profiles');
-        } catch (e: any) {
-          setErrorMessage(e.message);
-        }
-      });
-
-      // Clear activeSession
-      updateDoc(doc(db, 'questionPools', user.uid), {
-        activeSession: deleteField()
-      }).catch((err) => {
-        console.error(err);
-        try {
-          handleFirestoreError(err, OperationType.UPDATE, 'questionPools');
-        } catch (e: any) {
-          setErrorMessage(e.message);
-        }
       });
 
       // Level up celebration!
@@ -481,9 +491,29 @@ export default function App() {
       }
     }
 
+    if (quizState.sessionId) {
+      const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
+      cleared.push(quizState.sessionId);
+      localStorage.setItem('smartprep_cleared_sessions', JSON.stringify(cleared.slice(-10)));
+      if (quizState.sessionId.startsWith('legacy_')) {
+        localStorage.setItem('smartprep_cleared_legacy', 'true');
+      }
+    } else {
+      localStorage.setItem('smartprep_cleared_legacy', 'true');
+    }
+    
+    if (user) {
+      // Clear activeSession unconditionally (even if quota exceeded we try, or at least we don't tie it)
+      updateDoc(doc(db, 'questionPools', user.uid), {
+        activeSession: deleteField()
+      }).catch((err) => {
+        console.error("Failed to clear active session from cloud", err);
+      });
+    }
+
     setQuizState(prev => ({ ...prev, isFinished: true }));
     setAppState('report');
-  }, [quizState.questions, quizState.answers, updateMasteryProgress, user, userProfile]);
+  }, [quizState.questions, quizState.answers, updateMasteryProgress, user, userProfile, quizState.sessionId]);
 
   const handleUploadDifferent = React.useCallback(() => {
     setFiles([]);

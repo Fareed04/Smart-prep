@@ -39,6 +39,7 @@ export interface QuizState {
   isFinished: boolean;
   timeRemaining: number; // in seconds
   flaggedQuestions: string[]; // array of questionIds
+  sessionId?: string;
 }
 
 export interface QuizSession {
