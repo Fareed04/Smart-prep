@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
 import { StudyGuide } from '../types';
-import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload } from 'lucide-react';
+import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { generateStudyGuide } from '../lib/gemini';
+import { cn } from '../lib/utils';
 
 interface StudyHubProps {
   user: User;
@@ -20,8 +21,48 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
   const [error, setError] = useState<string | null>(null);
   
   const [viewingGuide, setViewingGuide] = useState<StudyGuide | null>(null);
+  const [activeSection, setActiveSection] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const sections = useMemo(() => {
+    if (!viewingGuide) return [];
+    
+    // Attempt to split by ## or ### headings
+    const lines = viewingGuide.content.split('\n');
+    const result: { title: string, content: string }[] = [];
+    
+    let currentTitle = 'Overview / Introduction';
+    let currentContent: string[] = [];
+
+    for (const line of lines) {
+      // Find headings (h1, h2, h3)
+      const match = line.match(/^(#{1,3})\s+(.*)/);
+      if (match) {
+        // Only split if we have enough content, or if we want to honor every heading
+        // Let's create a new section for every h1 or h2, but keep h3 bundled?
+        // Let's just break on h1 and h2
+        if (match[1].length <= 2) {
+          if (currentContent.length > 0 || currentTitle !== 'Overview / Introduction') {
+            result.push({ title: currentTitle, content: currentContent.join('\n') });
+          }
+          currentTitle = match[2];
+          currentContent = [line];
+        } else {
+          currentContent.push(line);
+        }
+      } else {
+        currentContent.push(line);
+      }
+    }
+    
+    if (currentContent.length > 0) {
+      result.push({ title: currentTitle, content: currentContent.join('\n') });
+    }
+    
+    // Filter empty
+    return result.filter(s => s.content.trim().length > 0);
+  }, [viewingGuide]);
   
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('General Strategy');
@@ -127,32 +168,98 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
 
   if (viewingGuide) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-6 animate-in fade-in">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6 animate-in fade-in">
         <button 
-          onClick={() => setViewingGuide(null)}
+          onClick={() => {
+            setViewingGuide(null);
+            setActiveSection(0);
+          }}
           className="flex items-center space-x-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           <span>Back to Library</span>
         </button>
 
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-md uppercase tracking-wider">
-                {viewingGuide.category}
-              </span>
-              <span className="text-sm text-slate-400">
-                {format(viewingGuide.createdAt, 'MMM d, yyyy')}
-              </span>
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          {/* Sidebar TOC */}
+          <div className="w-full md:w-72 shrink-0 md:sticky md:top-6 space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+               <div className="flex items-center space-x-2 mb-4">
+                 <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-md uppercase tracking-wider">
+                   {viewingGuide.category}
+                 </span>
+               </div>
+               <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{viewingGuide.title}</h1>
+               <p className="text-xs text-slate-400 mb-6">
+                 {format(viewingGuide.createdAt, 'MMM d, yyyy')}
+               </p>
+               
+               <div className="space-y-1">
+                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Table of Contents</h3>
+                 {sections.map((section, idx) => (
+                    <button
+                       key={idx}
+                       onClick={() => setActiveSection(idx)}
+                       className={cn(
+                         "w-full text-left px-3 py-2.5 text-sm font-medium transition-all rounded-xl flex items-center justify-between group",
+                         activeSection === idx 
+                           ? "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" 
+                           : "text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/80 dark:text-slate-400"
+                       )}
+                    >
+                        <span className="truncate pr-2">{section.title.replace(/[*_~`#]/g, '')}</span>
+                        {activeSection === idx && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                        )}
+                    </button>
+                 ))}
+               </div>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{viewingGuide.title}</h1>
           </div>
-          
-          <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {viewingGuide.content}
-            </ReactMarkdown>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+            {sections[activeSection] ? (
+              <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {(() => {
+                    // Prepend the title as an h2 if it doesn't already start with one, just to ensure consistency
+                    let content = sections[activeSection].content;
+                    if (!content.trim().startsWith('#')) {
+                      content = `## ${sections[activeSection].title}\n\n${content}`;
+                    }
+                    return content;
+                  })()}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <div className="text-center text-slate-500 py-12">Select a section to view</div>
+            )}
+            
+            {/* Pagination Controls */}
+            <div className="mt-12 flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
+                disabled={activeSection === 0}
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors flex items-center space-x-1"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+              
+              <div className="text-sm text-slate-400">
+                {activeSection + 1} of {sections.length}
+              </div>
+
+              <button
+                onClick={() => setActiveSection(Math.min(sections.length - 1, activeSection + 1))}
+                disabled={activeSection === sections.length - 1}
+                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-30 transition-colors flex items-center space-x-1"
+              >
+                <span>Next</span>
+                <ChevronLeft className="w-4 h-4 rotate-180" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
