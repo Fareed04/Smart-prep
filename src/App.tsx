@@ -571,6 +571,19 @@ export default function App() {
     }
   }, []);
 
+  const handleAddCompany = React.useCallback((company: string) => {
+    if (user && userProfile) {
+      const updatedProfile = {
+        ...userProfile,
+        customCompanies: Array.from(new Set([...(userProfile.customCompanies || []), company]))
+      };
+      setUserProfile(updatedProfile);
+      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
+        console.error("Failed to add custom company", err);
+      });
+    }
+  }, [user, userProfile]);
+
   if (!isAuthReady) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">Loading...</div>;
   }
@@ -651,6 +664,8 @@ export default function App() {
             setFiles={setFiles} 
             onStartProcessing={handleStartProcessing} 
             onGenerateMock={handleGenerateMock}
+            customCompanies={userProfile?.customCompanies}
+            onAddCompany={handleAddCompany}
             errorMessage={errorMessage} 
             isProcessing={appState === 'processing'}
             processingStatus={processingStatus}

@@ -493,6 +493,51 @@ export async function extractQuestionsFromFiles(
   return uniqueQuestions;
 }
 
+export async function generateKnowledgeCheck(content: string): Promise<Question[]> {
+  const prompt = `Based on the following study guide content, generate 5 multiple-choice questions to test the user's understanding.
+Each question should focus on a key takeaway, strategy, or fact from the text.
+
+Study Guide Content:
+${content.substring(0, 10000)}
+
+Ensure the final output is a JSON list.`;
+
+  try {
+    const apiPromise = ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: {
+        parts: [{ text: prompt }],
+      },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              answer: { type: Type.STRING },
+              explanation: { type: Type.STRING, description: "Why this answer is correct based on the guide." },
+            },
+            required: ["question", "options", "answer", "explanation"],
+          },
+        },
+      },
+    });
+
+    const response = await withTimeout(apiPromise, 60000, "Gemini API timeout while generating knowledge check");
+    const jsonStr = response.text?.trim() || "[]";
+    const questions = JSON.parse(jsonStr);
+    
+    return questions.map((q: any, i: number) => ({ ...q, id: `check-${Date.now()}-${i}`, category: "Knowledge Check" }));
+  } catch (error) {
+    console.error("Error generating knowledge check:", error);
+    throw new Error("Failed to generate knowledge check. Please try again.");
+  }
+}
+
 export function generateQuizFromPool(
   pool: Question[], 
   progress: Record<string, QuestionProgress> = {},

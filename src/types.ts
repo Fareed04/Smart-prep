@@ -5,6 +5,7 @@ export interface UserProfile {
   streak: number;
   lastActive?: string; // ISO date string
   achievements: string[];
+  customCompanies?: string[];
 }
 
 export interface Achievement {

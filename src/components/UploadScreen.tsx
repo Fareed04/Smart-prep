@@ -8,17 +8,43 @@ interface UploadScreenProps {
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onStartProcessing: (company: string) => void;
   onGenerateMock: (company: string) => void;
+  customCompanies?: string[];
+  onAddCompany: (company: string) => void;
   errorMessage?: string | null;
   isProcessing?: boolean;
   processingStatus?: string;
   progress?: number;
 }
 
-const COMPANIES = ['KPMG', 'EY', 'PwC', 'Deloitte', 'Other'];
+const DEFAULT_COMPANIES = ['KPMG', 'EY', 'PwC', 'Deloitte'];
 
-export function UploadScreen({ files, setFiles, onStartProcessing, onGenerateMock, errorMessage, isProcessing = false, processingStatus = "", progress = 0 }: UploadScreenProps) {
+export function UploadScreen({ 
+  files, 
+  setFiles, 
+  onStartProcessing, 
+  onGenerateMock, 
+  customCompanies = [], 
+  onAddCompany,
+  errorMessage, 
+  isProcessing = false, 
+  processingStatus = "", 
+  progress = 0 
+}: UploadScreenProps) {
   const [selectedCompany, setSelectedCompany] = useState('KPMG');
+  const [isAddingCompany, setIsAddingCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(-1);
+
+  const allCompanies = [...DEFAULT_COMPANIES, ...customCompanies, 'Other'];
+
+  const handleAddCompany = () => {
+    if (newCompanyName.trim()) {
+      onAddCompany(newCompanyName.trim());
+      setSelectedCompany(newCompanyName.trim());
+      setNewCompanyName('');
+      setIsAddingCompany(false);
+    }
+  };
 
   // Track which file is currently processing based on the status string
   useEffect(() => {
@@ -64,14 +90,21 @@ export function UploadScreen({ files, setFiles, onStartProcessing, onGenerateMoc
         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Which company are these files for?
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {COMPANIES.map((company) => (
+        <div className="flex flex-wrap gap-3">
+          {allCompanies.map((company) => (
             <button
               key={company}
-              onClick={() => setSelectedCompany(company)}
+              onClick={() => {
+                if (company === 'Other') {
+                  setIsAddingCompany(true);
+                } else {
+                  setSelectedCompany(company);
+                  setIsAddingCompany(false);
+                }
+              }}
               className={cn(
                 "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border-2",
-                selectedCompany === company
+                selectedCompany === company && !isAddingCompany
                   ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
                   : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-blue-500",
                 isProcessing && "opacity-50 cursor-not-allowed pointer-events-none"
@@ -81,6 +114,35 @@ export function UploadScreen({ files, setFiles, onStartProcessing, onGenerateMoc
             </button>
           ))}
         </div>
+
+        {isAddingCompany && (
+          <div className="flex items-center space-x-2 animate-in slide-in-from-top-2">
+            <input
+              type="text"
+              autoFocus
+              placeholder="Enter company name (e.g. ARM)"
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
+              className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800 border-2 border-blue-500 rounded-xl text-sm focus:outline-none dark:text-white"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddCompany();
+                if (e.key === 'Escape') setIsAddingCompany(false);
+              }}
+            />
+            <button
+              onClick={handleAddCompany}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Add
+            </button>
+            <button
+              onClick={() => setIsAddingCompany(false)}
+              className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {errorMessage && (

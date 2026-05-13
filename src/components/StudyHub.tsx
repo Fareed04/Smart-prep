@@ -7,8 +7,10 @@ import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Up
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { generateStudyGuide } from '../lib/gemini';
+import { generateStudyGuide, generateKnowledgeCheck } from '../lib/gemini';
 import { cn } from '../lib/utils';
+import { Question } from '../types';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface StudyHubProps {
   user: User;
@@ -24,6 +26,11 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
   const [activeSection, setActiveSection] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [checkQuestions, setCheckQuestions] = useState<Question[]>([]);
+  const [isGeneratingCheck, setIsGeneratingCheck] = useState(false);
+  const [checkAnswers, setCheckAnswers] = useState<Record<string, string>>({});
+  const [showCheckResults, setShowCheckResults] = useState(false);
 
   const sections = useMemo(() => {
     if (!viewingGuide) return [];
@@ -166,6 +173,21 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
     }
   };
 
+  const handleStartCheck = async () => {
+    if (!viewingGuide) return;
+    setIsGeneratingCheck(true);
+    setCheckAnswers({});
+    setShowCheckResults(false);
+    try {
+      const q = await generateKnowledgeCheck(viewingGuide.content);
+      setCheckQuestions(q);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsGeneratingCheck(false);
+    }
+  };
+
   if (viewingGuide) {
     return (
       <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6 animate-in fade-in">
@@ -214,52 +236,149 @@ export function StudyHub({ user, onBack }: StudyHubProps) {
                     </button>
                  ))}
                </div>
+               <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    onClick={handleStartCheck}
+                    disabled={isGeneratingCheck}
+                    className="w-full py-3 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl font-bold text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all flex items-center justify-center space-x-2"
+                  >
+                    {isGeneratingCheck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
+                    <span>{isGeneratingCheck ? 'Generating...' : 'Take Knowledge Check'}</span>
+                  </button>
+               </div>
             </div>
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 min-w-0 bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
-            {sections[activeSection] ? (
-              <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {(() => {
-                    // Prepend the title as an h2 if it doesn't already start with one, just to ensure consistency
-                    let content = sections[activeSection].content;
-                    if (!content.trim().startsWith('#')) {
-                      content = `## ${sections[activeSection].title}\n\n${content}`;
-                    }
-                    return content;
-                  })()}
-                </ReactMarkdown>
+          <div className="flex-1 min-w-0 space-y-6">
+            {checkQuestions.length > 0 ? (
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Knowledge Check</h2>
+                  <button 
+                    onClick={() => setCheckQuestions([])}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="space-y-8">
+                  {checkQuestions.map((q, idx) => {
+                    const selected = checkAnswers[q.id];
+                    const isCorrect = selected === q.answer;
+                    
+                    return (
+                      <div key={q.id} className="space-y-4">
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          <span className="text-indigo-600 dark:text-indigo-400 mr-2">{idx + 1}.</span>
+                          {q.question}
+                        </p>
+                        <div className="grid grid-cols-1 gap-2">
+                          {q.options.map(opt => (
+                            <button
+                              key={opt}
+                              disabled={showCheckResults}
+                              onClick={() => setCheckAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                              className={cn(
+                                "text-left px-4 py-3 rounded-xl border-2 transition-all text-sm",
+                                selected === opt
+                                  ? showCheckResults 
+                                    ? isCorrect ? "bg-green-50 border-green-500 text-green-700" : "bg-red-50 border-red-500 text-red-700"
+                                    : "bg-indigo-50 border-indigo-500 text-indigo-700"
+                                  : showCheckResults && opt === q.answer
+                                    ? "bg-green-50 border-green-500 text-green-700"
+                                    : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                              )}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                        {showCheckResults && selected && (
+                          <div className={cn(
+                            "p-4 rounded-xl text-sm flex items-start space-x-3 animate-in fade-in slide-in-from-top-2",
+                            isCorrect ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
+                          )}>
+                             {isCorrect ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <XCircle className="w-5 h-5 shrink-0" />}
+                             <p>{q.explanation}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!showCheckResults ? (
+                  <button
+                    onClick={() => setShowCheckResults(true)}
+                    disabled={Object.keys(checkAnswers).length < checkQuestions.length}
+                    className="w-full mt-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    Check My Answers
+                  </button>
+                ) : (
+                  <div className="flex space-x-3 mt-8">
+                    <button
+                      onClick={handleStartCheck}
+                      className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Try New Questions
+                    </button>
+                    <button
+                      onClick={() => setCheckQuestions([])}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                    >
+                      Return to Guide
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="text-center text-slate-500 py-12">Select a section to view</div>
-            )}
-            
-            {/* Pagination Controls */}
-            <div className="mt-12 flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
-              <button
-                onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
-                disabled={activeSection === 0}
-                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors flex items-center space-x-1"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Previous</span>
-              </button>
-              
-              <div className="text-sm text-slate-400">
-                {activeSection + 1} of {sections.length}
-              </div>
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+                {sections[activeSection] ? (
+                  <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {(() => {
+                        // Prepend the title as an h2 if it doesn't already start with one, just to ensure consistency
+                        let content = sections[activeSection].content;
+                        if (!content.trim().startsWith('#')) {
+                          content = `## ${sections[activeSection].title}\n\n${content}`;
+                        }
+                        return content;
+                      })()}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-500 py-12">Select a section to view</div>
+                )}
+                
+                {/* Pagination Controls */}
+                <div className="mt-12 flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
+                    disabled={activeSection === 0}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors flex items-center space-x-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </button>
+                  
+                  <div className="text-sm text-slate-400">
+                    {activeSection + 1} of {sections.length}
+                  </div>
 
-              <button
-                onClick={() => setActiveSection(Math.min(sections.length - 1, activeSection + 1))}
-                disabled={activeSection === sections.length - 1}
-                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-30 transition-colors flex items-center space-x-1"
-              >
-                <span>Next</span>
-                <ChevronLeft className="w-4 h-4 rotate-180" />
-              </button>
-            </div>
+                  <button
+                    onClick={() => setActiveSection(Math.min(sections.length - 1, activeSection + 1))}
+                    disabled={activeSection === sections.length - 1}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-30 transition-colors flex items-center space-x-1"
+                  >
+                    <span>Next</span>
+                    <ChevronLeft className="w-4 h-4 rotate-180" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
