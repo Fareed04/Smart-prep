@@ -82,7 +82,7 @@ export function UploadScreen({
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Big 4 Smart-Prep</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Smart-Prep</h1>
         <p className="text-lg text-slate-600 dark:text-slate-400">Upload past questions to generate your AI-powered simulation.</p>
       </div>
 

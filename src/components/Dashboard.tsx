@@ -113,7 +113,7 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
                  </span>
               )}
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your Big 4 assessment prep?</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your assessment prep?</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
@@ -215,7 +215,7 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
                 />
               </div>
               <div className="flex justify-between text-xs font-medium text-slate-500">
-                 <span>Master the entire pool to earn "Big 4 Legend"</span>
+                 <span>Master the entire pool to earn "Prep Legend"</span>
                 <span>{masteryPercentage}%</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
           {[
             { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
             { id: 'streak', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
-            { id: 'master', title: 'Big 4 Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
+            { id: 'master', title: 'Assessment Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
             { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
           ].map((badge) => (
             <div 

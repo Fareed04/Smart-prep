@@ -100,7 +100,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
       'Antonyms/Synonyms': 'Build your vocabulary through consistent reading. Focus on understanding word roots and context clues.',
       'Critical Reasoning': 'Learn to map arguments. Practice identifying assumptions and weakening/strengthening factors.',
       'Current Affairs': 'Review Nigerian and global political/economic facts for 2024-2026. Focus on key leadership and policy changes.',
-      'Soft Skills / Situational Judgment': 'Study Big 4 core values and professional ethics. Focus on empathy, leadership, and conflict resolution.',
+      'Soft Skills / Situational Judgment': 'Study generic core values and professional ethics. Focus on empathy, leadership, and conflict resolution.',
     };
     return adviceMap[category] || 'You need more practice here. Focus on "Work Smarter" tactics for this section.';
   };
@@ -112,7 +112,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           <Trophy className="w-10 h-10" />
         </div>
         <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Simulation Complete</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company || 'Big 4'} assessment.</p>
+        <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company ? `${company} ` : ''}assessment.</p>
       </div>
 
       {saveError && (

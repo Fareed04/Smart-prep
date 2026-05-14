@@ -97,7 +97,7 @@ export async function generateMockAssessment(company: string): Promise<Question[
   const prompt = `Generate a realistic, high-quality mock assessment test for ${company}.
 If the company is "PwC", specifically emulate the "PwC Cornerstone Assessment Nigeria" which is typically comprised of SHL or Predictive Index style questions encompassing Deductive Reasoning, Inductive Reasoning, Numerical Reasoning, and Work Style Preferences (Situational Judgement).
 
-Create exactly 15 unique questions spread evenly across the following categories based on typical Big 4 testing formats:
+Create exactly 15 unique questions spread evenly across the following categories based on typical corporate testing formats:
 - Numerical Reasoning (include data interpretation, percentages, ratios, probability)
 - Verbal Reasoning / Reading Comprehension
 - Logical / Inductive / Deductive Reasoning
