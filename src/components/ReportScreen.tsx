@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download } from 'lucide-react';
+import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Clock } from 'lucide-react';
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -100,14 +100,23 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   // Calculate weakness report
   const categoryStats = state.questions.reduce((acc, q) => {
     if (!acc[q.category]) {
-      acc[q.category] = { total: 0, correct: 0 };
+      acc[q.category] = { total: 0, correct: 0, timeSpent: 0 };
     }
     acc[q.category].total++;
     if (state.answers[q.id] === q.answer) {
       acc[q.category].correct++;
     }
+    if (state.timeSpentPerQuestion && state.timeSpentPerQuestion[q.id]) {
+      acc[q.category].timeSpent += state.timeSpentPerQuestion[q.id];
+    }
     return acc;
-  }, {} as Record<string, { total: number; correct: number }>);
+  }, {} as Record<string, { total: number; correct: number; timeSpent: number }>);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  };
 
   const weaknesses = Object.entries(categoryStats)
     .map(([category, stats]) => ({
@@ -152,7 +161,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
             <Trophy className="w-10 h-10" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Simulation Complete</h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company ? `${company} ` : ''}assessment.</p>
+          <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company && company !== 'All' ? `${company} ` : ''}assessment.</p>
         </div>
 
         {saveError && (
@@ -226,6 +235,36 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
                 <p className="text-slate-600 dark:text-slate-400">You scored above 80% in all categories.</p>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <span>Time Spent per Category</span>
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {Object.entries(categoryStats).map(([category, stats], i) => {
+                const percentage = timeTaken > 0 ? (stats.timeSpent / timeTaken) * 100 : 0;
+                return (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-slate-900 dark:text-white">{category}</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">{formatTime(stats.timeSpent)}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-500 dark:bg-indigo-400 rounded-full"
+                        style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 

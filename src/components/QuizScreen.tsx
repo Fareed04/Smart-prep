@@ -85,7 +85,16 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             handleFinish();
             return prev;
           }
-          return { ...prev, timeRemaining: prev.timeRemaining - 1 };
+          const currentQuestionId = prev.questions[prev.currentIndex].id;
+          const currentSpent = prev.timeSpentPerQuestion?.[currentQuestionId] || 0;
+          return { 
+            ...prev, 
+            timeRemaining: prev.timeRemaining - 1,
+            timeSpentPerQuestion: {
+              ...(prev.timeSpentPerQuestion || {}),
+              [currentQuestionId]: currentSpent + 1
+            }
+          };
         });
       }
     }, 1000);

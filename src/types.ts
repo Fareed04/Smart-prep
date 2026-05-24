@@ -39,6 +39,7 @@ export interface QuizState {
   answers: Record<string, string>; // questionId -> selected option
   isFinished: boolean;
   timeRemaining: number; // in seconds
+  timeSpentPerQuestion?: Record<string, number>; // questionId -> seconds
   flaggedQuestions: string[]; // array of questionIds
   sessionId?: string;
 }
