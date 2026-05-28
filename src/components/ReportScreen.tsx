@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Clock } from 'lucide-react';
+import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Clock, Share2, Copy } from 'lucide-react';
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -23,6 +23,8 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   const [isSaved, setIsSaved] = useState(isViewingPastReport);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
   const saveInProgress = useRef(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,28 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
     }
   };
 
+  const handleShare = async () => {
+    setIsSharing(true);
+    const text = `I scored ${score}% (${correctAnswers}/${totalQuestions}) on the ${company || 'Smart-Prep'} assessment simulation in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s! 🎯`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Smart-Prep Assessment Result',
+          text: text,
+        });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setShareSuccess(true);
+    } catch (err) {
+      console.error('Error sharing:', err);
+    } finally {
+      setIsSharing(false);
+      setTimeout(() => setShareSuccess(false), 3000);
+    }
+  };
+
   // Calculate weakness report
   const categoryStats = state.questions.reduce((acc, q) => {
     if (!acc[q.category]) {
@@ -144,7 +168,23 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          onClick={handleShare}
+          disabled={isSharing}
+          className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
+        >
+          {shareSuccess ? (
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
+          ) : navigator.share ? (
+            <Share2 className="w-4 h-4" />
+          ) : (
+            <Copy className="w-4 h-4" />
+          )}
+          <span className="text-sm font-medium">
+            {shareSuccess ? 'Copied/Shared!' : isSharing ? 'Sharing...' : 'Share Score'}
+          </span>
+        </button>
         <button
           onClick={exportToPDF}
           disabled={isExporting}
