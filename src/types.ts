@@ -24,6 +24,7 @@ export interface Question {
   explanation: string;
   category: string;
   company?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface QuestionProgress {
@@ -42,6 +43,8 @@ export interface QuizState {
   timeSpentPerQuestion?: Record<string, number>; // questionId -> seconds
   flaggedQuestions: string[]; // array of questionIds
   sessionId?: string;
+  isAdaptive?: boolean;
+  categoryDifficulties?: Record<string, 'easy' | 'medium' | 'hard'>; // Tracks current difficulty for each category
 }
 
 export interface QuizSession {
@@ -56,6 +59,8 @@ export interface QuizSession {
   questions?: string;
   answers?: string;
   createdAt: Date;
+  isAdaptive?: boolean;
+  finalCategoryDifficulties?: Record<string, 'easy' | 'medium' | 'hard'>; 
 }
 
 export interface StudyGuide {

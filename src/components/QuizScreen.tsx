@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { Calculator } from './Calculator';
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
+import { generateAdaptiveQuestion } from '../lib/gemini';
 
 interface QuizScreenProps {
   state: QuizState;
@@ -120,7 +121,54 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
     setIsAnswerChecked(true);
   }, [state.answers, currentQuestion.id, isPaused, isFinishing]);
 
-  const handleNext = React.useCallback(() => {
+  const [isGeneratingAdaptive, setIsGeneratingAdaptive] = useState(false);
+
+  const handleNext = React.useCallback(async () => {
+    if (isFinishing || isGeneratingAdaptive) return;
+    
+    // If we're an adaptive quiz and we at the end but need more questions
+    if (state.isAdaptive && state.currentIndex === state.questions.length - 1 && state.questions.length < 15) {
+      setShowExplanation(false);
+      setIsAnswerChecked(false);
+      setIsGeneratingAdaptive(true);
+      try {
+        const category = currentQuestion.category;
+        const currentDiff = state.categoryDifficulties?.[category] || 'medium';
+        const isCorrect = state.answers[currentQuestion.id] === currentQuestion.answer;
+        
+        let nextDiff: 'easy' | 'medium' | 'hard' = currentDiff;
+        if (isCorrect) {
+          nextDiff = currentDiff === 'easy' ? 'medium' : 'hard';
+        } else {
+          nextDiff = currentDiff === 'hard' ? 'medium' : 'easy';
+        }
+
+        const nextQuestion = await generateAdaptiveQuestion(
+          currentQuestion.company || 'Smart-Prep',
+          category,
+          nextDiff,
+          { question: currentQuestion.question, answeredCorrectly: isCorrect }
+        );
+
+        setState(prev => ({
+          ...prev,
+          questions: [...prev.questions, nextQuestion],
+          currentIndex: prev.currentIndex + 1,
+          categoryDifficulties: {
+            ...prev.categoryDifficulties,
+            [category]: nextDiff
+          }
+        }));
+      } catch (err) {
+        console.error("Failed to generate adaptive question", err);
+        alert("Failed to connect to AI engine. Ending assessment early based on current responses.");
+        handleFinish();
+      } finally {
+        setIsGeneratingAdaptive(false);
+      }
+      return;
+    }
+
     if (isFinishing) return;
     setShowExplanation(false);
     setIsAnswerChecked(false);
@@ -129,7 +177,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
     } else {
       handleFinish();
     }
-  }, [isFinishing, state.currentIndex, state.questions.length, handleFinish, setState]);
+  }, [isFinishing, isGeneratingAdaptive, state.currentIndex, state.questions.length, state.isAdaptive, state.answers, currentQuestion, state.categoryDifficulties, handleFinish, setState]);
 
   const handlePrev = React.useCallback(() => {
     if (state.currentIndex > 0) {
@@ -357,11 +405,20 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             ) : (
               <button
                 onClick={handleNext}
-                disabled={isPaused}
+                disabled={isPaused || isGeneratingAdaptive}
                 className="flex items-center justify-center space-x-2 px-8 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md w-full sm:w-auto"
               >
-                <span>{state.currentIndex === state.questions.length - 1 ? 'Finish' : 'Next'}</span>
-                <ChevronRight className="w-5 h-5" />
+                {isGeneratingAdaptive ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{(state.currentIndex === state.questions.length - 1 && (!state.isAdaptive || state.questions.length >= 15)) ? 'Finish' : 'Next'}</span>
+                    <ChevronRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
             )}
           </div>

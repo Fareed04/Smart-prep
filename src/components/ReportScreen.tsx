@@ -4,6 +4,7 @@ import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
+import { cn } from '../lib/utils';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -237,6 +238,37 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
             </div>
           )}
         </div>
+
+        {state.isAdaptive && state.categoryDifficulties && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+                <Target className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <span>Adaptive Difficulty Benchmarks</span>
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                Your final performance level achieved in each category based on the AI's dynamic scaling.
+              </p>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Object.entries(state.categoryDifficulties).map(([category, difficulty], i) => (
+                <div key={i} className="flex flex-col space-y-2 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span className="font-medium text-slate-900 dark:text-white text-sm">{category}</span>
+                  <div className="flex items-center justify-between">
+                    <span className={cn(
+                      "text-sm font-bold uppercase tracking-wider px-2 py-1 rounded",
+                      difficulty === 'hard' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                      difficulty === 'medium' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                      "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    )}>
+                      {difficulty} Mastery
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">

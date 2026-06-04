@@ -93,6 +93,57 @@ Write the guide in clear, engaging Markdown formatting.
   }
 }
 
+export async function generateAdaptiveQuestion(
+  company: string,
+  category: string,
+  difficulty: 'easy' | 'medium' | 'hard',
+  previousContext?: { question: string; answeredCorrectly: boolean }
+): Promise<Question> {
+  let adaptivePrompt = `Generate one ${difficulty} difficulty multiple-choice question for ${company} in the category of "${category}".\n`;
+  
+  if (previousContext) {
+    if (previousContext.answeredCorrectly) {
+      adaptivePrompt += `The user previously answered a question correctly in this category. Make this new question slightly more challenging or explore a more advanced facet of the topic.`;
+    } else {
+      adaptivePrompt += `The user previously answered a question incorrectly in this category: "${previousContext.question}". Make this new question slightly easier and focus on reinforcing the core concepts related to that topic.`;
+    }
+  }
+
+  adaptivePrompt += `\nProvide 4 or 5 options. Make sure one is decisively correct. Output a JSON object with properties: question, options, answer, explanation, category (must be exactly "${category}"), difficulty (must be exactly "${difficulty}").`;
+
+  try {
+    const apiPromise = ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: { parts: [{ text: adaptivePrompt }] },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 2048,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            answer: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+            category: { type: Type.STRING },
+            difficulty: { type: Type.STRING }
+          },
+          required: ["question", "options", "answer", "explanation", "category", "difficulty"]
+        }
+      }
+    });
+
+    const response = await withTimeout(apiPromise, 60000, "Gemini API timeout while generating adaptive question");
+    const jsonStr = response.text?.trim() || "{}";
+    const q = JSON.parse(jsonStr);
+    
+    return { ...q, id: `adaptive-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, company, difficulty };
+  } catch (error) {
+    console.error("Error generating adaptive question:", error);
+    throw new Error("Failed to generate adaptive question.");
+  }
+}
+
 export async function generateMockAssessment(company: string): Promise<Question[]> {
   const prompt = `Generate a realistic, high-quality mock assessment test for ${company}.
 If the company is "PwC", specifically emulate the "PwC Cornerstone Assessment Nigeria" which is typically comprised of SHL or Predictive Index style questions encompassing Deductive Reasoning, Inductive Reasoning, Numerical Reasoning, and Work Style Preferences (Situational Judgement).

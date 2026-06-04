@@ -221,10 +221,10 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleGenerateMock = React.useCallback(async (company: string) => {
+  const handleGenerateMock = React.useCallback(async (company: string, isAdaptive?: boolean) => {
     setAppState('processing');
     setProgress(0);
-    setProcessingStatus(`Generating mock assessment for ${company}...`);
+    setProcessingStatus(`Generating ${isAdaptive ? 'adaptive AI' : 'mock'} assessment for ${company}...`);
     setErrorMessage(null);
     setSelectedCompany(company);
 
@@ -238,10 +238,11 @@ export default function App() {
         }
       }, 500);
 
+      // We still generate a base set of questions. For adaptive, we'll only use the first one and discard the rest.
       const mockQuestions = await generateMockAssessment(company);
       clearInterval(progressInterval);
       setProgress(100);
-      setProcessingStatus("Mock assessment generated successfully!");
+      setProcessingStatus("Assessment initialized successfully!");
 
       const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
       setExtractedPool(mergedPool);
@@ -263,12 +264,19 @@ export default function App() {
       setTimeout(() => {
         setQuizDuration(10);
         setQuizState({
-          questions: mockQuestions,
+          questions: isAdaptive ? [mockQuestions[0]] : mockQuestions,
           currentIndex: 0,
           answers: {},
           isFinished: false,
           timeRemaining: 10 * 60,
-          flaggedQuestions: []
+          flaggedQuestions: [],
+          isAdaptive: isAdaptive,
+          categoryDifficulties: isAdaptive ? {
+            "Numerical Reasoning": "medium",
+            "Verbal Reasoning": "medium",
+            "Logical / Inductive / Deductive Reasoning": "medium",
+            "Situational Judgement / Soft Skills": "medium"
+          } : undefined
         });
         setIsViewingPastReport(false);
         setAppState('quiz');

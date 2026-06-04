@@ -7,7 +7,7 @@ interface UploadScreenProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onStartProcessing: (company: string) => void;
-  onGenerateMock: (company: string) => void;
+  onGenerateMock: (company: string, isAdaptive?: boolean) => void;
   customCompanies?: string[];
   onAddCompany: (company: string) => void;
   errorMessage?: string | null;
@@ -180,15 +180,24 @@ export function UploadScreen({
       </div>
 
       {files.length === 0 && !isProcessing && (
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Don't have any past questions?</p>
-          <button
-            onClick={() => onGenerateMock(selectedCompany)}
-            className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center space-x-2 mx-auto"
-          >
-            <Loader2 className={cn("w-4 h-4", isProcessing ? "animate-spin" : "hidden")} />
-            <span>Generate Mock {selectedCompany} Assessment</span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => onGenerateMock(selectedCompany, false)}
+              className="px-6 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm flex items-center justify-center space-x-2 w-full sm:w-auto"
+            >
+              <Loader2 className={cn("w-4 h-4", isProcessing ? "animate-spin" : "hidden")} />
+              <span>Generate Standard Test</span>
+            </button>
+            <button
+              onClick={() => onGenerateMock(selectedCompany, true)}
+              className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center space-x-2 w-full sm:w-auto"
+            >
+              <Loader2 className={cn("w-4 h-4", isProcessing ? "animate-spin" : "hidden")} />
+              <span>Start Adaptive AI Simulation</span>
+            </button>
+          </div>
         </div>
       )}
 
