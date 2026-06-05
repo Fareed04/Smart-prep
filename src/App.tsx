@@ -364,6 +364,31 @@ export default function App() {
     setAppState('quiz');
   }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
 
+  const handleQuickStart = React.useCallback(() => {
+    // Select 10 random questions from the pool
+    const shuffledPool = [...extractedPool].sort(() => Math.random() - 0.5);
+    const quizQuestions = shuffledPool.slice(0, 10);
+    
+    if (quizQuestions.length === 0) {
+      alert("No questions available in the pool. Please upload study materials or generate mock assessments first.");
+      setAppState('upload');
+      return;
+    }
+
+    setQuizDuration(5);
+    setQuizState({
+      sessionId: Math.random().toString(36).substring(2, 15),
+      questions: quizQuestions,
+      currentIndex: 0,
+      answers: {},
+      isFinished: false,
+      timeRemaining: 5 * 60,
+      flaggedQuestions: []
+    });
+    setIsViewingPastReport(false);
+    setAppState('quiz');
+  }, [extractedPool]);
+
   const handleLeaveQuiz = React.useCallback(() => {
     if (quizState.sessionId) {
       const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
@@ -658,6 +683,7 @@ export default function App() {
                 setAppState('upload');
               }
             }}
+            onQuickStart={handleQuickStart}
             onViewReport={handleViewReport}
             onOpenStudyHub={() => setAppState('study')}
             errorMessage={errorMessage}

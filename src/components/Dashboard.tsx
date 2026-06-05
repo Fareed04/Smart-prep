@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardProps {
   onStartNew: () => void;
+  onQuickStart: () => void;
   onViewReport: (session: QuizSession) => void;
   onOpenStudyHub: () => void;
   errorMessage?: string | null;
@@ -17,7 +18,7 @@ interface DashboardProps {
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onQuickStart, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -141,10 +142,17 @@ export function Dashboard({ onStartNew, onViewReport, onOpenStudyHub, errorMessa
             <span>Study Hub</span>
           </button>
           <button
+            onClick={onQuickStart}
+            className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md"
+          >
+            <Zap className="w-5 h-5 fill-current" />
+            <span className="whitespace-nowrap">Quick Start</span>
+          </button>
+          <button
             onClick={onStartNew}
             className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md"
           >
-            <Play className="w-5 h-5" />
+            <Play className="w-5 h-5 fill-current" />
             <span>Simulation</span>
           </button>
         </div>
