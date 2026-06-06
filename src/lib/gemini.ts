@@ -204,6 +204,7 @@ CRITICAL RULES:
 1. If a question relies on a chart, graph, table, or diagram, DO NOT SKIP IT. Instead, meticulously analyze the visual data and convert it into a well-formatted Markdown table or detailed text description. Embed this directly at the beginning of the 'question' text so the user has all the data required to solve it. Only skip pure spatial reasoning questions (e.g., 'which shape comes next') that absolutely cannot be represented as text or tables.
 2. For fractions and math equations, format them clearly using plain text or simple markdown (e.g., 1/2 or a/b). Ensure the question is properly structured and readable.
 3. For verbal questions, ALWAYS include the instruction (e.g., 'Choose the antonym for the following word:', 'Select the synonym:'). If the original text lacks instructions, infer them from the options and add them explicitly to the question text.
+4. For reading comprehension questions, it is MANDATORY to include the complete source passage in the question text. If multiple questions refer to the same passage, you MUST duplicate the full passage into the 'question' text for EVERY single question that relies on it. Do not use cross-references like "refer to the passage above" without including the passage.
 
 Categorize each question strictly into one of the following categories:
 - Numerical Reasoning
