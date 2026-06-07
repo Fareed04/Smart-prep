@@ -122,6 +122,7 @@ export async function generateAdaptiveQuestion(
           type: Type.OBJECT,
           properties: {
             question: { type: Type.STRING },
+            passage: { type: Type.STRING, description: "The reading passage if applicable" },
             options: { type: Type.ARRAY, items: { type: Type.STRING } },
             answer: { type: Type.STRING },
             explanation: { type: Type.STRING },
@@ -172,6 +173,7 @@ Ensure the final output is a JSON list.`;
             type: Type.OBJECT,
             properties: {
               question: { type: Type.STRING },
+              passage: { type: Type.STRING },
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
               answer: { type: Type.STRING },
               explanation: { type: Type.STRING, description: "Detailed explanation of why the answer is correct." },
@@ -204,7 +206,7 @@ CRITICAL RULES:
 1. If a question relies on a chart, graph, table, or diagram, DO NOT SKIP IT. Instead, meticulously analyze the visual data and convert it into a well-formatted Markdown table or detailed text description. Embed this directly at the beginning of the 'question' text so the user has all the data required to solve it. Only skip pure spatial reasoning questions (e.g., 'which shape comes next') that absolutely cannot be represented as text or tables.
 2. For fractions and math equations, format them clearly using plain text or simple markdown (e.g., 1/2 or a/b). Ensure the question is properly structured and readable.
 3. For verbal questions, ALWAYS include the instruction (e.g., 'Choose the antonym for the following word:', 'Select the synonym:'). If the original text lacks instructions, infer them from the options and add them explicitly to the question text.
-4. For reading comprehension questions, it is MANDATORY to include the complete source passage in the question text. If multiple questions refer to the same passage, you MUST duplicate the full passage into the 'question' text for EVERY single question that relies on it. Do not use cross-references like "refer to the passage above" without including the passage.
+4. For reading comprehension questions, it is MANDATORY to separate the complete source passage from the question instruction. Put the full passage into the 'passage' property, and only the specific question being asked in the 'question' property. If multiple questions refer to the same passage, you MUST duplicate the full passage into the 'passage' property for EVERY single question that relies on it. Do not use cross-references like "refer to the passage above" without including the passage.
 
 Categorize each question strictly into one of the following categories:
 - Numerical Reasoning
@@ -252,6 +254,7 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
             type: Type.OBJECT,
             properties: {
               question: { type: Type.STRING, description: "The question text, including explicit instructions for verbal questions" },
+              passage: { type: Type.STRING, description: "The full reading comprehension passage, if applicable." },
               options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of multiple choice options" },
               answer: { type: Type.STRING, description: "The correct option exactly as it appears in the options list" },
               explanation: { type: Type.STRING, description: "Detailed explanation including 'Work Smarter' tips and context notes" },
@@ -569,6 +572,7 @@ Ensure the final output is a JSON list.`;
             type: Type.OBJECT,
             properties: {
               question: { type: Type.STRING },
+              passage: { type: Type.STRING },
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
               answer: { type: Type.STRING },
               explanation: { type: Type.STRING, description: "Why this answer is correct based on the guide." },

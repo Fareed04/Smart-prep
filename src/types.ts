@@ -25,6 +25,7 @@ export interface Question {
   category: string;
   company?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
+  passage?: string;
 }
 
 export interface QuestionProgress {

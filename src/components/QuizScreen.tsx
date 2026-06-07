@@ -309,6 +309,20 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </div>
         )}
 
+        {currentQuestion.passage && (
+          <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3 uppercase tracking-wider">Reference Passage</div>
+            <div className="max-h-64 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 text-[15px] leading-relaxed text-slate-800 dark:text-slate-200 markdown-body prose prose-slate dark:prose-invert max-w-none prose-p:my-2">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={MarkdownComponents}
+              >
+                {currentQuestion.passage}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
+
         <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800">
           <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
             <ReactMarkdown 
