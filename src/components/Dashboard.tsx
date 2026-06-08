@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface DashboardProps {
   onStartNew: () => void;
   onQuickStart: () => void;
+  onUpgradePool?: () => void;
   onViewReport: (session: QuizSession) => void;
   onOpenStudyHub: () => void;
   errorMessage?: string | null;
@@ -18,7 +19,7 @@ interface DashboardProps {
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onQuickStart, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -162,6 +163,24 @@ export function Dashboard({ onStartNew, onQuickStart, onViewReport, onOpenStudyH
         <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {onUpgradePool && pool.some(q => q.category === 'Reading Comprehension' && !q.passage && q.question.length > 200) && (
+        <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start space-x-3">
+            <BookOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-300">Format Upgrade Available</h3>
+              <p className="text-sm text-indigo-700 dark:text-indigo-400">We noticed some legacy Reading Comprehension questions in your pool. You can automatically restructure them for better readability.</p>
+            </div>
+          </div>
+          <button
+            onClick={onUpgradePool}
+            className="shrink-0 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
+          >
+            Upgrade Format
+          </button>
         </div>
       )}
 

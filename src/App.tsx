@@ -7,7 +7,7 @@ import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
-import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment } from './lib/gemini';
+import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment, migrateLegacyQuestions } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -389,6 +389,50 @@ export default function App() {
     setAppState('quiz');
   }, [extractedPool]);
 
+  const handleUpgradePool = React.useCallback(async () => {
+    try {
+      const legacyQuestions = extractedPool.filter(q => q.category === 'Reading Comprehension' && !q.passage && q.question.length > 200);
+      if (legacyQuestions.length === 0) return;
+
+      setAppState('processing');
+      setProgress(50);
+      setProcessingStatus(`Upgrading ${legacyQuestions.length} legacy Reading Comprehension questions...`);
+
+      // Try to migrate them using the LLM helper
+      const upgraded = await migrateLegacyQuestions(legacyQuestions);
+      
+      setProgress(100);
+      setProcessingStatus("Format upgrade complete!");
+
+      const updatedPool = extractedPool.map(q => {
+        const upgradedQuestion = upgraded.find(u => u.id === q.id);
+        if (upgradedQuestion) {
+          return upgradedQuestion;
+        }
+        return q;
+      });
+
+      setExtractedPool(updatedPool);
+      if (user && !isFirestoreQuotaExceeded) {
+        setDoc(doc(db, 'questionPools', user.uid), { 
+          pool: JSON.stringify(updatedPool),
+          progress: JSON.stringify(questionProgress)
+        }, { merge: true }).catch((err) => {
+          console.error(err);
+        });
+      }
+
+      setTimeout(() => {
+        setAppState('dashboard');
+      }, 1500);
+
+    } catch (e: any) {
+      console.error(e);
+      alert("Upgrade failed: " + e.message);
+      setAppState('dashboard');
+    }
+  }, [extractedPool, user, questionProgress]);
+
   const handleLeaveQuiz = React.useCallback(() => {
     if (quizState.sessionId) {
       const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
@@ -684,6 +728,7 @@ export default function App() {
               }
             }}
             onQuickStart={handleQuickStart}
+            onUpgradePool={handleUpgradePool}
             onViewReport={handleViewReport}
             onOpenStudyHub={() => setAppState('study')}
             errorMessage={errorMessage}

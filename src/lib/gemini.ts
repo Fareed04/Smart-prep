@@ -594,6 +594,61 @@ Ensure the final output is a JSON list.`;
   }
 }
 
+export async function migrateLegacyQuestions(questions: Question[]): Promise<Question[]> {
+  try {
+    const prompt = `The following list of questions represents a legacy format where Reading Comprehension passages were prepended to the instruction in the 'question' field.
+For each question provided:
+1. If the 'question' field contains a long passage followed by a specific instruction/question at the end, extract the passage into the 'passage' field and leave only the specific instruction in the 'question' field.
+2. Ensure you preserve the 'id', 'options', 'answer', 'explanation', 'category', 'company', and 'difficulty' completely unchanged. DO NOT modify any missing fields except splitting passage and question.
+If the question text doesn't contain a long passage, just leave 'passage' empty and 'question' as is.
+
+Format your output as a JSON array matching the exact same questions with the newly separated properties.
+
+Input Questions:
+${JSON.stringify(questions, null, 2)}`;
+
+    const apiPromise = ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              question: { type: Type.STRING },
+              passage: { type: Type.STRING, description: "The extracted reading passage, if any." },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              answer: { type: Type.STRING },
+              explanation: { type: Type.STRING },
+              category: { type: Type.STRING },
+              company: { type: Type.STRING },
+              difficulty: { type: Type.STRING },
+            },
+            required: ["id", "question", "options", "answer", "explanation", "category"],
+          },
+        },
+      },
+    });
+
+    const ms = 60000;
+    const response = await new Promise<any>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Migration timed out after ${ms}ms`)), ms);
+      apiPromise.then(resolve).catch(reject).finally(() => clearTimeout(timer));
+    });
+
+    const responseText = response.text();
+    const migrated = JSON.parse(responseText) as Question[];
+    return migrated;
+  } catch (error) {
+    console.error("Migration failed", error);
+    throw new Error("Failed to migrate existing pool questions");
+  }
+}
+
 export function generateQuizFromPool(
   pool: Question[], 
   progress: Record<string, QuestionProgress> = {},
