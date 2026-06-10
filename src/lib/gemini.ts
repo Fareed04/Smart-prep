@@ -640,7 +640,7 @@ ${JSON.stringify(questions, null, 2)}`;
       apiPromise.then(resolve).catch(reject).finally(() => clearTimeout(timer));
     });
 
-    const responseText = response.text();
+    const responseText = response.text || "[]";
     const migrated = JSON.parse(responseText) as Question[];
     return migrated;
   } catch (error) {

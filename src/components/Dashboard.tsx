@@ -102,7 +102,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
     }));
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
           {userProfile && (
