@@ -361,7 +361,12 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
                   optionClass
                 )}
               >
-                <span className="text-base sm:text-lg">{option}</span>
+                <span className="flex items-center space-x-3">
+                  <kbd className="hidden sm:inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-sans font-medium text-slate-500 dark:text-slate-400">
+                    {i + 1}
+                  </kbd>
+                  <span className="text-base sm:text-lg">{option}</span>
+                </span>
                 {isAnswerChecked && option === currentQuestion.answer && (
                   <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400 shrink-0 ml-2" />
                 )}
@@ -412,9 +417,12 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
               <button
                 onClick={handleCheckAnswer}
                 disabled={!selectedOption || isPaused}
-                className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md w-full sm:w-auto"
+                className="flex items-center justify-center space-x-3 px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md w-full sm:w-auto"
               >
-                Check Answer
+                <span>Check Answer</span>
+                <kbd className="hidden sm:inline-flex items-center justify-center px-2 h-5 rounded bg-slate-800 dark:bg-slate-200 text-[10px] font-sans font-medium text-slate-300 dark:text-slate-600">
+                  Enter
+                </kbd>
               </button>
             ) : (
               <button
@@ -429,7 +437,12 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
                   </>
                 ) : (
                   <>
-                    <span>{(state.currentIndex === state.questions.length - 1 && (!state.isAdaptive || state.questions.length >= 15)) ? 'Finish' : 'Next'}</span>
+                    <div className="flex items-center space-x-2">
+                      <span>{(state.currentIndex === state.questions.length - 1 && (!state.isAdaptive || state.questions.length >= 15)) ? 'Finish' : 'Next'}</span>
+                      <kbd className="hidden sm:inline-flex items-center justify-center px-2 h-5 rounded bg-blue-500 dark:bg-blue-800 text-[10px] font-sans font-medium text-white/90">
+                        Enter
+                      </kbd>
+                    </div>
                     <ChevronRight className="w-5 h-5" />
                   </>
                 )}
