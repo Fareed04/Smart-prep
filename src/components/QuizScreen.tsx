@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2, Cloud } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
@@ -32,6 +32,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [hintCooldown, setHintCooldown] = useState(0);
   const [activeHints, setActiveHints] = useState<Record<string, boolean>>({});
+  const [showSyncToast, setShowSyncToast] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
 
@@ -55,6 +56,8 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
         await updateDoc(doc(db, 'questionPools', currentUser.uid), {
            activeSession: JSON.stringify(stateRef.current)
         });
+        setShowSyncToast(true);
+        setTimeout(() => setShowSyncToast(false), 2000);
       } catch (error) {
         console.error("Failed to auto-save progress", error);
         try {
@@ -236,6 +239,14 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-in fade-in duration-500">
+      {/* Sync Toast */}
+      {showSyncToast && (
+        <div className="fixed top-20 right-4 sm:right-8 bg-slate-900/90 dark:bg-slate-800/90 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 z-50">
+          <Cloud className="w-4 h-4 text-emerald-400" />
+          <span>Progress synced</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 sm:mb-8 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-2">
