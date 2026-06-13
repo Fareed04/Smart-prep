@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
 import { StudyGuide } from '../types';
-import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList } from 'lucide-react';
+import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
