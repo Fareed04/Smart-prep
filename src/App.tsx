@@ -787,6 +787,7 @@ export default function App() {
         {appState === 'study' && user && (
           <StudyHub 
             user={user}
+            pool={extractedPool}
             onBack={() => setAppState('dashboard')}
           />
         )}
