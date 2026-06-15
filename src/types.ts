@@ -24,7 +24,7 @@ export interface Question {
   explanation: string;
   category: string;
   company?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard';
   passage?: string;
 }
 

@@ -178,8 +178,9 @@ Ensure the final output is a JSON list.`;
               answer: { type: Type.STRING },
               explanation: { type: Type.STRING, description: "Detailed explanation of why the answer is correct." },
               category: { type: Type.STRING, description: "One of: Numerical Reasoning, Verbal Reasoning, Logical Reasoning, Situational Judgement" },
+              difficulty: { type: Type.STRING, description: "Strictly one of: easy, medium, hard" },
             },
-            required: ["question", "options", "answer", "explanation", "category"],
+            required: ["question", "options", "answer", "explanation", "category", "difficulty"],
           },
         },
       },
@@ -207,6 +208,7 @@ CRITICAL RULES:
 2. For fractions and math equations, format them clearly using plain text or simple markdown (e.g., 1/2 or a/b). Ensure the question is properly structured and readable.
 3. For verbal questions, ALWAYS include the instruction (e.g., 'Choose the antonym for the following word:', 'Select the synonym:'). If the original text lacks instructions, infer them from the options and add them explicitly to the question text.
 4. For reading comprehension questions, it is MANDATORY to separate the complete source passage from the question instruction. Put the full passage into the 'passage' property, and only the specific question being asked in the 'question' property. If multiple questions refer to the same passage, you MUST duplicate the full passage into the 'passage' property for EVERY single question that relies on it. Do not use cross-references like "refer to the passage above" without including the passage.
+5. Assess the complexity of the question and its cognitive demands. Automatically tag the question's 'difficulty' level strictly as exactly "easy", "medium", or "hard".
 
 Categorize each question strictly into one of the following categories:
 - Numerical Reasoning
@@ -259,8 +261,9 @@ async function processWithGemini(parts: any[], retryCount = 0): Promise<any[]> {
               answer: { type: Type.STRING, description: "The correct option exactly as it appears in the options list" },
               explanation: { type: Type.STRING, description: "Detailed explanation including 'Work Smarter' tips and context notes" },
               category: { type: Type.STRING, description: "Strictly one of: Numerical Reasoning, Data Analysis, Reading Comprehension, Sentence Correction, Antonyms/Synonyms, Critical Reasoning, Current Affairs, Soft Skills / Situational Judgment" },
+              difficulty: { type: Type.STRING, description: "Strictly one of: easy, medium, hard based on cognitive demands" },
             },
-            required: ["question", "options", "answer", "explanation", "category"],
+            required: ["question", "options", "answer", "explanation", "category", "difficulty"],
           },
         },
       },
@@ -576,8 +579,9 @@ Ensure the final output is a JSON list.`;
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
               answer: { type: Type.STRING },
               explanation: { type: Type.STRING, description: "Why this answer is correct based on the guide." },
+              difficulty: { type: Type.STRING, description: "Strictly one of: easy, medium, hard" },
             },
-            required: ["question", "options", "answer", "explanation"],
+            required: ["question", "options", "answer", "explanation", "difficulty"],
           },
         },
       },
@@ -628,7 +632,7 @@ ${JSON.stringify(questions, null, 2)}`;
               company: { type: Type.STRING },
               difficulty: { type: Type.STRING },
             },
-            required: ["id", "question", "options", "answer", "explanation", "category"],
+            required: ["id", "question", "options", "answer", "explanation", "category", "difficulty"],
           },
         },
       },

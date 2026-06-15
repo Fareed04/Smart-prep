@@ -605,9 +605,21 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
             <div className="w-full max-w-2xl">
               <div className="mb-6 flex items-center justify-between text-sm font-medium text-slate-500 dark:text-slate-400">
                 <span>Card {flashcardIndex + 1} of {flashcards.length}</span>
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs">
-                  {flashcards[flashcardIndex].category}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs">
+                    {flashcards[flashcardIndex].category}
+                  </span>
+                  {flashcards[flashcardIndex].difficulty && (
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider",
+                      flashcards[flashcardIndex].difficulty === 'easy' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                      flashcards[flashcardIndex].difficulty === 'medium' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                      "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                    )}>
+                      {flashcards[flashcardIndex].difficulty}
+                    </span>
+                  )}
+                </div>
               </div>
               
               <div 
