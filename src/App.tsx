@@ -35,6 +35,7 @@ export default function App() {
   const [masteryMode, setMasteryMode] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [quizDuration, setQuizDuration] = useState<number>(60);
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
@@ -350,7 +351,7 @@ export default function App() {
   }, [files, extractedPool, questionProgress, user]);
 
   const handleStartQuiz = React.useCallback(() => {
-    const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory);
+    const quizQuestions = generateQuizFromPool(extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty);
     setQuizState({
       sessionId: Math.random().toString(36).substring(2, 15),
       questions: quizQuestions,
@@ -362,7 +363,7 @@ export default function App() {
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, quizDuration]);
+  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty, quizDuration]);
 
   const handleQuickStart = React.useCallback(() => {
     // Select 10 random questions from the pool
@@ -763,6 +764,8 @@ export default function App() {
             setSelectedCompany={setSelectedCompany}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
+            selectedDifficulty={selectedDifficulty}
+            setSelectedDifficulty={setSelectedDifficulty}
             quizDuration={quizDuration}
             setQuizDuration={setQuizDuration}
           />

@@ -1,4 +1,4 @@
-import { Play, FileText, Settings, Plus, Building2, Clock } from 'lucide-react';
+import { Play, FileText, Settings, Plus, Building2, Clock, Target } from 'lucide-react';
 import { Question } from '../types';
 import { cn } from '../lib/utils';
 
@@ -13,6 +13,8 @@ interface ReadyScreenProps {
   setSelectedCompany: (val: string) => void;
   selectedCategory: string;
   setSelectedCategory: (val: string) => void;
+  selectedDifficulty: string;
+  setSelectedDifficulty: (val: string) => void;
   quizDuration: number;
   setQuizDuration: (val: number) => void;
 }
@@ -28,6 +30,8 @@ export function ReadyScreen({
   setSelectedCompany,
   selectedCategory,
   setSelectedCategory,
+  selectedDifficulty,
+  setSelectedDifficulty,
   quizDuration,
   setQuizDuration
 }: ReadyScreenProps) {
@@ -40,9 +44,15 @@ export function ReadyScreen({
     
   const categoriesInPool = Array.from(new Set(companyFilteredPool.map(q => q.category).filter(Boolean))) as string[];
   
-  const finalFilteredPool = selectedCategory === 'All'
+  const categoryFilteredPool = selectedCategory === 'All'
     ? companyFilteredPool
     : companyFilteredPool.filter(q => q.category === selectedCategory);
+    
+  const difficultiesInPool = Array.from(new Set(categoryFilteredPool.map(q => q.difficulty).filter(Boolean))) as string[];
+  
+  const finalFilteredPool = selectedDifficulty === 'All'
+    ? categoryFilteredPool
+    : categoryFilteredPool.filter(q => q.difficulty === selectedDifficulty);
   
   const poolSize = finalFilteredPool.length;
 
@@ -127,6 +137,42 @@ export function ReadyScreen({
                     )}
                   >
                     {category} ({companyFilteredPool.filter(q => q.category === category).length})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {difficultiesInPool.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium">
+                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span>Filter by Difficulty</span>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  onClick={() => setSelectedDifficulty('All')}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                    selectedDifficulty === 'All'
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
+                  )}
+                >
+                  All Difficulties ({categoryFilteredPool.length})
+                </button>
+                {difficultiesInPool.map(diff => (
+                  <button
+                    key={diff}
+                    onClick={() => setSelectedDifficulty(diff)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                      selectedDifficulty === diff
+                        ? "bg-blue-600 border-blue-600 text-white"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
+                    )}
+                  >
+                    <span className="capitalize">{diff}</span> ({categoryFilteredPool.filter(q => q.difficulty === diff).length})
                   </button>
                 ))}
               </div>

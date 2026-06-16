@@ -658,7 +658,8 @@ export function generateQuizFromPool(
   progress: Record<string, QuestionProgress> = {},
   masteryMode: boolean = false,
   company?: string,
-  category?: string
+  category?: string,
+  difficulty?: string
 ): Question[] {
   // If mastery mode, we prioritize questions that are NOT mastered.
   let workingPool = [...pool];
@@ -671,6 +672,11 @@ export function generateQuizFromPool(
   // Filter by category if specified
   if (category && category !== 'All') {
     workingPool = workingPool.filter(q => q.category === category);
+  }
+
+  // Filter by difficulty if specified
+  if (difficulty && difficulty !== 'All') {
+    workingPool = workingPool.filter(q => q.difficulty === difficulty);
   }
   
   if (masteryMode) {
