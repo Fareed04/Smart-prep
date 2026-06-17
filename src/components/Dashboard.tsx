@@ -3,7 +3,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
 import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO, isSameDay, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -92,6 +92,28 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
   };
 
   const xpProgress = userProfile ? (userProfile.xp % 1000) / 10 : 0;
+
+  // Calendar logic
+  const today = new Date();
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const activeStreakDates: Date[] = [];
+  if (userProfile && userProfile.streak > 0 && userProfile.lastActive) {
+    const lastActiveDate = parseISO(userProfile.lastActive);
+    for (let i = 0; i < userProfile.streak; i++) {
+      activeStreakDates.push(subDays(lastActiveDate, i));
+    }
+  }
+
+  const isDayInStreak = (day: Date) => {
+    return activeStreakDates.some(activeDate => isSameDay(activeDate, day));
+  };
+  
+  // Calculate empty days at start of month for grid alignment (0 = Sunday, 1 = Monday)
+  const startDayOfWeek = monthStart.getDay();
+  const emptyDays = Array.from({ length: startDayOfWeek }, (_, i) => i);
 
   const chartData = [...sessions]
     .slice(0, 10)
@@ -259,33 +281,78 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         )}
       </div>
 
-      {/* Achievements / Badges */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center space-x-2">
-          <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          <span>Professional Badges</span>
-        </h2>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
-            { id: 'streak', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
-            { id: 'master', title: 'Assessment Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
-            { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
-          ].map((badge) => (
-            <div 
-              key={badge.id}
-              className={`p-4 rounded-2xl border text-center transition-all duration-300 ${
-                badge.active 
-                  ? 'border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 grayscale-0 opacity-100 shadow-sm' 
-                  : 'border-slate-100 dark:border-slate-800 opacity-40 grayscale'
-              }`}
-            >
-              <div className="text-3xl mb-2">{badge.icon}</div>
-              <div className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">{badge.title}</div>
-              <div className="text-[9px] text-slate-500 line-clamp-1">{badge.desc}</div>
-            </div>
-          ))}
+      {/* Achievements and Calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Achievements / Badges */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center space-x-2">
+            <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <span>Professional Badges</span>
+          </h2>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 h-[calc(100%-3rem)] auto-rows-max">
+            {[
+              { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
+              { id: 'streak', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
+              { id: 'master', title: 'Assessment Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
+              { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
+            ].map((badge) => (
+              <div 
+                key={badge.id}
+                className={`p-4 rounded-2xl border text-center transition-all duration-300 flex flex-col justify-center items-center ${
+                  badge.active 
+                    ? 'border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 grayscale-0 opacity-100 shadow-sm' 
+                    : 'border-slate-100 dark:border-slate-800 opacity-40 grayscale'
+                }`}
+              >
+                <div className="text-3xl mb-2">{badge.icon}</div>
+                <div className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">{badge.title}</div>
+                <div className="text-[9px] text-slate-500 line-clamp-1">{badge.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Streak Calendar */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              <span>{format(today, 'MMMM yyyy')}</span>
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <div key={i} className="text-xs font-bold text-slate-400">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-sm flex-1">
+            {emptyDays.map(i => (
+              <div key={`empty-${i}`} className="p-1" />
+            ))}
+            {monthDays.map(day => {
+              const active = isDayInStreak(day);
+              const todayMark = isToday(day);
+              
+              return (
+                <div 
+                  key={format(day, 'yyyy-MM-dd')}
+                  className="aspect-square flex items-center justify-center p-0.5"
+                >
+                  <div className={`w-full h-full rounded-full flex items-center justify-center font-medium ${
+                    active 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 ring-2 ring-amber-400 dark:ring-amber-500/50' 
+                      : todayMark
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold border-2 border-blue-200 dark:border-blue-800'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}>
+                    {format(day, 'd')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
