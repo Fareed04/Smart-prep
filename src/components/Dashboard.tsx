@@ -129,24 +129,27 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         <div className="flex items-center space-x-4">
           {userProfile && (
             <div className="relative">
-              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                 {userProfile.level}
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white p-1 rounded-full border-2 border-white dark:border-slate-950">
+              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white p-1.5 rounded-full border-2 border-white dark:border-slate-950">
                 <Trophy className="w-4 h-4" />
               </div>
             </div>
           )}
           <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back, {auth.currentUser?.displayName?.split(' ')[0] || 'User'}</h1>
-              {userProfile && (
-                 <span className={`px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold uppercase tracking-widest ${getRankColor(userProfile.level)}`}>
-                   {getRank(userProfile.level)}
-                 </span>
-              )}
-            </div>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">Ready to continue your assessment prep?</p>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white leading-tight">
+              Welcome back,<br />
+              <div className="flex items-center space-x-3 mt-1">
+                <span>{auth.currentUser?.displayName?.split(' ')[0] || 'User'}</span>
+                {userProfile && (
+                  <span className={`text-sm font-bold uppercase tracking-widest ${getRankColor(userProfile.level)}`}>
+                    {getRank(userProfile.level)}
+                  </span>
+                )}
+              </div>
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">Ready to continue your assessment prep?</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
