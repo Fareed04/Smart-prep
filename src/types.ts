@@ -6,6 +6,7 @@ export interface UserProfile {
   lastActive?: string; // ISO date string
   achievements: string[];
   customCompanies?: string[];
+  dailyGoal?: number;
 }
 
 export interface Achievement {

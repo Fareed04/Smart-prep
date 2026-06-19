@@ -131,7 +131,8 @@ export default function App() {
               level: 1,
               streak: 1,
               lastActive: new Date().toISOString(),
-              achievements: []
+              achievements: [],
+              dailyGoal: 20
             };
             await setDoc(doc(db, 'profiles', currentUser.uid), initialProfile);
             setUserProfile(initialProfile);

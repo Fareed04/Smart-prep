@@ -115,6 +115,16 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
   const startDayOfWeek = monthStart.getDay();
   const emptyDays = Array.from({ length: startDayOfWeek }, (_, i) => i);
 
+  // Calculate daily goal progress
+  const questionsAnsweredToday = useMemo(() => {
+    return sessions
+      .filter(s => isToday(s.createdAt))
+      .reduce((total, session) => total + session.totalQuestions, 0);
+  }, [sessions]);
+  
+  const dailyGoal = userProfile?.dailyGoal || 20;
+  const goalProgress = Math.min((questionsAnsweredToday / dailyGoal) * 100, 100);
+
   const chartData = [...sessions]
     .slice(0, 10)
     .reverse()
@@ -210,7 +220,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
       )}
 
       {/* Gamified Progress row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* XP Progress */}
         {userProfile && (
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
@@ -276,9 +286,61 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
                 />
               </div>
               <div className="flex justify-between text-xs font-medium text-slate-500">
-                 <span>Master the entire pool to earn "Prep Legend"</span>
+                <span>Master the entire pool to earn "Prep Legend"</span>
                 <span>{masteryPercentage}%</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Daily Goal */}
+        {userProfile && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <Target className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Daily Goal</h2>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Answer {dailyGoal} questions</p>
+              <div className="mt-4">
+                <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{questionsAnsweredToday}</span>
+                <span className="text-slate-500 dark:text-slate-400"> / {dailyGoal}</span>
+              </div>
+            </div>
+            <div className="relative w-24 h-24">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle 
+                  cx="50" 
+                  cy="50" 
+                  r="40" 
+                  className="stroke-slate-100 dark:stroke-slate-800" 
+                  strokeWidth="8" 
+                  fill="none" 
+                />
+                <motion.circle 
+                  cx="50" 
+                  cy="50" 
+                  r="40" 
+                  className="stroke-emerald-500" 
+                  strokeWidth="8" 
+                  fill="none" 
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 40}`}
+                  strokeDashoffset={`${2 * Math.PI * 40}`}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 40 * (1 - goalProgress / 100) }}
+                  transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+                />
+              </svg>
+              {goalProgress >= 100 && (
+                <motion.div 
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 1.5, type: 'spring' }}
+                  className="absolute inset-0 flex items-center justify-center text-emerald-500"
+                >
+                  <Trophy className="w-8 h-8 fill-current" />
+                </motion.div>
+              )}
             </div>
           </div>
         )}
