@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Markdown from 'react-markdown';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
@@ -22,6 +23,27 @@ interface DashboardProps {
 export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetchingTips, setIsFetchingTips] = useState(false);
+  const [studyTips, setStudyTips] = useState<string | null>(null);
+
+  const fetchStudyTips = async () => {
+    setIsFetchingTips(true);
+    try {
+      const response = await fetch('/api/study-tips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userProfile, sessions: sessions.slice(0, 5) }),
+      });
+      const data = await response.json();
+      if (data.tips) {
+        setStudyTips(data.tips);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsFetchingTips(false);
+    }
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -171,6 +193,14 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
             </div>
           )}
           <button
+            onClick={fetchStudyTips}
+            disabled={isFetchingTips}
+            className="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
+          >
+            <Star className="w-5 h-5 text-amber-500" />
+            <span>{isFetchingTips ? 'Analyzing...' : 'Get Study Tips'}</span>
+          </button>
+          <button
             onClick={onOpenStudyHub}
             className="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
@@ -198,6 +228,24 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <p>{errorMessage}</p>
+        </div>
+      )}
+
+      {studyTips && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 p-6 rounded-2xl relative">
+          <button 
+            onClick={() => setStudyTips(null)}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            ✕
+          </button>
+          <div className="flex items-center space-x-2 mb-4">
+            <Star className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">AI Study Advice</h2>
+          </div>
+          <div className="prose prose-slate dark:prose-invert max-w-none text-sm markdown-body">
+            <Markdown>{studyTips}</Markdown>
+          </div>
         </div>
       )}
 
