@@ -3,7 +3,17 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiClient: GoogleGenAI | null = null;
+function getAIClient() {
+  if (!aiClient) {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+      throw new Error("GEMINI_API_KEY environment variable is required");
+    }
+    aiClient = new GoogleGenAI({ apiKey: key });
+  }
+  return aiClient;
+}
 
 async function startServer() {
   const app = express();
@@ -23,22 +33,13 @@ Recent Sessions: ${JSON.stringify(sessions)}
 
 Provide tailored advice:`;
 
-      const interaction = await ai.interactions.create({
+      const ai = getAIClient();
+      const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        input: prompt,
+        contents: prompt,
       });
 
-      let fullOutput = "";
-      for (const step of interaction.steps) {
-        if (step.type === 'model_output') {
-          const textContent = step.content?.find(c => c.type === 'text');
-          if (textContent && textContent.text) {
-            fullOutput += textContent.text;
-          }
-        }
-      }
-
-      res.json({ tips: fullOutput });
+      res.json({ tips: response.text });
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ error: "Failed to generate tips." });
