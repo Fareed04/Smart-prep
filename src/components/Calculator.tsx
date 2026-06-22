@@ -6,21 +6,32 @@ export function Calculator() {
   const [isOpen, setIsOpen] = useState(false);
   const [display, setDisplay] = useState('0');
   const [equation, setEquation] = useState('');
+  const [history, setHistory] = useState<{eq: string, res: string}[]>([]);
+  const displayRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (displayRef.current) {
+      displayRef.current.scrollTop = displayRef.current.scrollHeight;
+    }
+  }, [history, display, equation]);
 
   const handleNum = (num: string) => {
     setDisplay(display === '0' ? num : display + num);
   };
 
   const handleOp = (op: string) => {
-    setEquation(display + ' ' + op + ' ');
+    setEquation(equation + display + ' ' + op + ' ');
     setDisplay('0');
   };
 
   const calculate = () => {
     try {
       // Safe eval equivalent for simple math
-      const result = new Function('return ' + equation + display)();
-      setDisplay(String(result));
+      const fullEq = equation + display;
+      const result = new Function('return ' + fullEq)();
+      const stringResult = String(result);
+      setHistory(prev => [...prev, { eq: fullEq + ' =', res: stringResult }].slice(-10));
+      setDisplay(stringResult);
       setEquation('');
     } catch (e) {
       setDisplay('Error');
@@ -56,9 +67,17 @@ export function Calculator() {
       </div>
       
       <div className="p-4 space-y-4">
-        <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-right space-y-1">
-          <div className="text-xs text-slate-500 dark:text-slate-400 h-4">{equation}</div>
-          <div className="text-2xl font-mono font-semibold text-slate-900 dark:text-white truncate">{display}</div>
+        <div ref={displayRef} className="bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-right space-y-1 flex flex-col h-32 overflow-y-auto">
+          {history.map((item, idx) => (
+            <div key={idx} className="flex flex-col text-sm text-slate-500 dark:text-slate-400">
+              <span className="text-xs">{item.eq}</span>
+              <span className="font-semibold">{item.res}</span>
+            </div>
+          ))}
+          <div className="mt-auto">
+            <div className="text-xs text-slate-500 dark:text-slate-400 min-h-[1rem]">{equation}</div>
+            <div className="text-2xl font-mono font-semibold text-slate-900 dark:text-white truncate">{display}</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
