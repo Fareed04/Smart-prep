@@ -51,6 +51,41 @@ export function Calculator() {
     }
   };
 
+  const handleUnaryOp = (op: string) => {
+    if (display === 'Error') return;
+    const currentNum = Number(display);
+    let newNum = 0;
+    
+    switch(op) {
+      case '√':
+        if (currentNum < 0) {
+          setDisplay('Error');
+          return;
+        }
+        newNum = Math.sqrt(currentNum);
+        break;
+      case 'x²':
+        newNum = Math.pow(currentNum, 2);
+        break;
+      case '%':
+        newNum = currentNum / 100;
+        break;
+      case '1/x':
+        if (currentNum === 0) {
+          setDisplay('Error');
+          return;
+        }
+        newNum = 1 / currentNum;
+        break;
+      case '±':
+        newNum = currentNum * -1;
+        break;
+    }
+    
+    const resultStr = String(Number(newNum.toFixed(8)));
+    setDisplay(resultStr);
+  };
+
   const clear = () => {
     setDisplay('0');
     setEquation('');
@@ -137,8 +172,13 @@ export function Calculator() {
         </div>
 
         <div className="grid grid-cols-4 gap-2">
-          {['C', '(', ')', '/'].map((btn) => (
-            <button key={btn} onClick={btn === 'C' ? clear : () => handleOp(btn)} className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-medium text-slate-700 dark:text-slate-300 transition-colors">
+          {['C', '(', ')', '⌫'].map((btn) => (
+            <button key={btn} onClick={btn === 'C' ? clear : btn === '⌫' ? handleDel : () => handleOp(btn)} className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-medium text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center">
+              {btn === '⌫' ? <Delete className="w-5 h-5" /> : btn}
+            </button>
+          ))}
+          {['√', 'x²', '%', '/'].map((btn) => (
+            <button key={btn} onClick={() => ['/'].includes(btn) ? handleOp(btn) : handleUnaryOp(btn)} className={cn("p-3 rounded-lg font-medium transition-colors text-lg", ['/'].includes(btn) ? "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300" : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300")}>
               {btn}
             </button>
           ))}
@@ -157,9 +197,9 @@ export function Calculator() {
               {btn}
             </button>
           ))}
-          {['0', '.', '⌫', '='].map((btn) => (
-            <button key={btn} onClick={() => btn === '=' ? calculate() : btn === '⌫' ? handleDel() : handleNum(btn)} className={cn("p-3 rounded-lg font-medium transition-colors text-lg flex items-center justify-center", btn === '=' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white")}>
-              {btn === '⌫' ? <Delete className="w-5 h-5" /> : btn}
+          {['±', '0', '.', '='].map((btn) => (
+            <button key={btn} onClick={() => btn === '=' ? calculate() : btn === '±' ? handleUnaryOp(btn) : handleNum(btn)} className={cn("p-3 rounded-lg font-medium transition-colors text-lg flex items-center justify-center", btn === '=' ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white")}>
+              {btn}
             </button>
           ))}
         </div>
