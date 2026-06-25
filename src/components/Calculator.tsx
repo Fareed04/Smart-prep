@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Calculator as CalcIcon, X, Delete, Trash2 } from 'lucide-react';
+import { Calculator as CalcIcon, X, Delete, Trash2, GripHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { motion, useDragControls } from 'motion/react';
 
 export function Calculator() {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,6 +9,7 @@ export function Calculator() {
   const [equation, setEquation] = useState('');
   const [history, setHistory] = useState<{eq: string, res: string}[]>([]);
   const displayRef = React.useRef<HTMLDivElement>(null);
+  const dragControls = useDragControls();
 
   React.useEffect(() => {
     if (displayRef.current) {
@@ -139,19 +141,31 @@ export function Calculator() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in slide-in-from-bottom-8 z-50 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+    <motion.div 
+      drag
+      dragControls={dragControls}
+      dragListener={false}
+      dragMomentum={false}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className="fixed bottom-6 right-6 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 flex flex-col"
+    >
+      <div 
+        onPointerDown={(e) => dragControls.start(e)}
+        className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 cursor-move"
+      >
         <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300 font-medium">
+          <GripHorizontal className="w-4 h-4 text-slate-400" />
           <CalcIcon className="w-4 h-4" />
-          <span>Calculator</span>
+          <span className="select-none">Calculator</span>
         </div>
         <div className="flex items-center space-x-1">
           {history.length > 0 && (
-            <button onClick={() => setHistory([])} className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Clear History">
+            <button onClick={() => setHistory([])} className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer" title="Clear History" onPointerDown={(e) => e.stopPropagation()}>
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={() => setIsOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <button onClick={() => setIsOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer" onPointerDown={(e) => e.stopPropagation()}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -204,6 +218,6 @@ export function Calculator() {
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
