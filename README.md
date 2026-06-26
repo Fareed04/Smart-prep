@@ -7,6 +7,7 @@ Smart-Prep is an intelligent, AI-powered mock assessment and study platform desi
 - **AI-Powered Simulations:** Upload past questions (PDFs, images) and generate realistic mock assessments customized for specific target companies (e.g., KPMG, EY, PwC, Deloitte, or any custom company you add).
 - **Personalized Dashboard:** Track your preparation journey with an interactive dashboard that monitors Experience Points (XP), Mastery Progress, daily study streaks, and professional achievements (badges).
 - **Interactive Study Hub:** Automatically generate deeply structured study guides from your uploaded materials or past performance. Includes Table of Contents generation and integrated Knowledge Checks (mini-quizzes generated on the fly) to test comprehension of the study material.
+- **Built-in Floating Calculator:** A draggable, floating calculator accessible anytime (especially useful during quantitative live quizzes). It features standard arithmetic, unary operations (square root, square, percentage, reciprocal, negate), calculation history, and keyboard shortcuts, all without obstructing your quiz content.
 - **Detailed Analytics & Reports:** Get immediate feedback after every simulation, featuring category-by-category breakdowns, time-taken metrics, and targeted "Work Smarter" advice driven by AI.
 - **Cross-Device Sync:** Features Firebase Authentication and Firestore integration to securely save progress, question pools, reports, and active sessions across devices.
 - **Session Persistence:** Leave a simulation mid-way and resume exactly where you left off, supported by local storage and cloud syncing.
@@ -14,7 +15,7 @@ Smart-Prep is an intelligent, AI-powered mock assessment and study platform desi
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Tailwind CSS, Vite
-- **UI Components:** Lucide Icons, Recharts (for data visualization), Canvas Confetti (for progress celebrations), React Markdown (for rendering study guides).
+- **UI Components:** Lucide Icons, Recharts (for data visualization), Canvas Confetti (for progress celebrations), React Markdown (for rendering study guides), Motion/React (for draggable components and animations).
 - **Backend & Database:** Firebase (Authentication & Firestore)
 - **AI Integration:** Google Gemini API (@google/genai) for parsing documents, generating dynamically structured mock tests, building study guides, and formulating targeted knowledge-check quizzes.
 
