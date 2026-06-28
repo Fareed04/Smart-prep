@@ -387,6 +387,40 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
         </div>
       </div>
 
+      {/* Question Navigation Grid */}
+      <div className="mb-6 flex flex-wrap gap-2 justify-center">
+        {state.questions.map((q, idx) => {
+          const isAnswered = !!state.answers[q.id];
+          const isCurrent = idx === state.currentIndex;
+          const isFlagged = state.flaggedQuestions?.includes(q.id);
+
+          return (
+            <button
+              key={q.id}
+              onClick={() => {
+                setShowExplanation(false);
+                setIsAnswerChecked(!!state.answers[q.id]);
+                setState((prev) => ({ ...prev, currentIndex: idx }));
+              }}
+              disabled={isPaused}
+              className={cn(
+                "relative flex items-center justify-center w-10 h-10 rounded-lg text-sm font-semibold transition-all border-2",
+                isCurrent
+                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  : isAnswered
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-500/50 dark:text-emerald-400"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600"
+              )}
+            >
+              {idx + 1}
+              {isFlagged && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Controls & Explanation */}
       <div className="space-y-6">
         <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-4">
