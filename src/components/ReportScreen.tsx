@@ -356,7 +356,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
                 const isCorrect = state.answers[question.id] === question.answer;
                 
                 return (
-                  <div key={question.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
+                  <div key={`${question.id}-${index}`} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex items-center space-x-2">
                          <span className="font-semibold text-slate-900 dark:text-white">Q{index + 1}</span>

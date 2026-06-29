@@ -278,7 +278,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                     const isCorrect = selected === q.answer;
                     
                     return (
-                      <div key={q.id} className="space-y-4">
+                      <div key={`${q.id}-${idx}`} className="space-y-4">
                         <p className="font-medium text-slate-900 dark:text-white">
                           <span className="text-indigo-600 dark:text-indigo-400 mr-2">{idx + 1}.</span>
                           {q.question}

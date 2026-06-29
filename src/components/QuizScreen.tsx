@@ -238,7 +238,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const isCurrentFlagged = state.flaggedQuestions?.includes(currentQuestion.id);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 animate-in fade-in duration-500">
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
       {/* Sync Toast */}
       {showSyncToast && (
         <div className="fixed top-20 right-4 sm:right-8 bg-slate-900/90 dark:bg-slate-800/90 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 z-50">
@@ -304,9 +304,9 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
       )}
 
       {/* Question Card */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6">
+      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col lg:grid lg:grid-cols-2 lg:divide-x divide-slate-100 dark:divide-slate-800">
         {isPaused && (
-          <div className="absolute inset-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="absolute inset-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center col-span-full">
             <Pause className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-4" />
             <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Simulation Paused</h3>
             <p className="text-slate-600 dark:text-slate-400 mb-8">The timer has been stopped.</p>
@@ -320,71 +320,131 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </div>
         )}
 
-        {currentQuestion.passage && (
-          <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3 uppercase tracking-wider">Reference Passage</div>
-            <div className="max-h-64 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 text-[15px] leading-relaxed text-slate-800 dark:text-slate-200 markdown-body prose prose-slate dark:prose-invert max-w-none prose-p:my-2">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm]}
-                components={MarkdownComponents}
-              >
-                {currentQuestion.passage}
-              </ReactMarkdown>
+        {currentQuestion.passage ? (
+          <>
+            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+              <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3 uppercase tracking-wider">Reference Passage</div>
+              <div className="text-[15px] leading-relaxed text-slate-800 dark:text-slate-200 markdown-body prose prose-slate dark:prose-invert max-w-none prose-p:my-2">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={MarkdownComponents}
+                >
+                  {currentQuestion.passage}
+                </ReactMarkdown>
+              </div>
             </div>
-          </div>
+
+            <div className="flex flex-col lg:h-[60vh] bg-white dark:bg-slate-900">
+              <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 shrink-0 max-h-[50%]">
+                <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={MarkdownComponents}
+                  >
+                    {currentQuestion.question}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              
+              <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 space-y-3 flex-1 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                {currentQuestion.options.map((option, i) => {
+                  const isSelected = selectedOption === option;
+                  let optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300";
+                  
+                  if (isAnswerChecked) {
+                    if (option === currentQuestion.answer) {
+                      optionClass = "border-green-500 dark:border-green-500/50 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300";
+                    } else if (isSelected) {
+                      optionClass = "border-red-500 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300";
+                    } else {
+                      optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 opacity-50";
+                    }
+                  } else if (isSelected) {
+                    optionClass = "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 ring-1 ring-blue-600 dark:ring-blue-500";
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleOptionSelect(option)}
+                      disabled={isAnswerChecked || isPaused}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between",
+                        optionClass
+                      )}
+                    >
+                      <span className="flex items-center space-x-3">
+                        <kbd className="hidden sm:inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-sans font-medium text-slate-500 dark:text-slate-400">
+                          {i + 1}
+                        </kbd>
+                        <span className="text-base sm:text-lg">{option}</span>
+                      </span>
+                      {isAnswerChecked && option === currentQuestion.answer && (
+                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400 shrink-0 ml-2" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 flex flex-col justify-center">
+              <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={MarkdownComponents}
+                >
+                  {currentQuestion.question}
+                </ReactMarkdown>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 flex flex-col justify-center">
+              <div className="space-y-3 w-full">
+                {currentQuestion.options.map((option, i) => {
+                  const isSelected = selectedOption === option;
+                  let optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300";
+                  
+                  if (isAnswerChecked) {
+                    if (option === currentQuestion.answer) {
+                      optionClass = "border-green-500 dark:border-green-500/50 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300";
+                    } else if (isSelected) {
+                      optionClass = "border-red-500 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300";
+                    } else {
+                      optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 opacity-50";
+                    }
+                  } else if (isSelected) {
+                    optionClass = "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 ring-1 ring-blue-600 dark:ring-blue-500";
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleOptionSelect(option)}
+                      disabled={isAnswerChecked || isPaused}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between",
+                        optionClass
+                      )}
+                    >
+                      <span className="flex items-center space-x-3">
+                        <kbd className="hidden sm:inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-sans font-medium text-slate-500 dark:text-slate-400">
+                          {i + 1}
+                        </kbd>
+                        <span className="text-base sm:text-lg">{option}</span>
+                      </span>
+                      {isAnswerChecked && option === currentQuestion.answer && (
+                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400 shrink-0 ml-2" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
-
-        <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800">
-          <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm]}
-              components={MarkdownComponents}
-            >
-              {currentQuestion.question}
-            </ReactMarkdown>
-          </div>
-        </div>
-        
-        <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 space-y-3">
-          {currentQuestion.options.map((option, i) => {
-            const isSelected = selectedOption === option;
-            let optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300";
-            
-            if (isAnswerChecked) {
-              if (option === currentQuestion.answer) {
-                optionClass = "border-green-500 dark:border-green-500/50 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300";
-              } else if (isSelected) {
-                optionClass = "border-red-500 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300";
-              } else {
-                optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 opacity-50";
-              }
-            } else if (isSelected) {
-              optionClass = "border-blue-600 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 ring-1 ring-blue-600 dark:ring-blue-500";
-            }
-
-            return (
-              <button
-                key={i}
-                onClick={() => handleOptionSelect(option)}
-                disabled={isAnswerChecked || isPaused}
-                className={cn(
-                  "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between",
-                  optionClass
-                )}
-              >
-                <span className="flex items-center space-x-3">
-                  <kbd className="hidden sm:inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-sans font-medium text-slate-500 dark:text-slate-400">
-                    {i + 1}
-                  </kbd>
-                  <span className="text-base sm:text-lg">{option}</span>
-                </span>
-                {isAnswerChecked && option === currentQuestion.answer && (
-                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400 shrink-0 ml-2" />
-                )}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Question Navigation Grid */}
@@ -396,7 +456,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
 
           return (
             <button
-              key={q.id}
+              key={`${q.id}-${idx}`}
               onClick={() => {
                 setShowExplanation(false);
                 setIsAnswerChecked(!!state.answers[q.id]);
