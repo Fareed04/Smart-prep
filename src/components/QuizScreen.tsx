@@ -238,7 +238,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const isCurrentFlagged = state.flaggedQuestions?.includes(currentQuestion.id);
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500 pb-8">
       {/* Sync Toast */}
       {showSyncToast && (
         <div className="fixed top-20 right-4 sm:right-8 bg-slate-900/90 dark:bg-slate-800/90 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 z-50">
@@ -304,7 +304,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
       )}
 
       {/* Question Card */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col lg:grid lg:grid-cols-2 lg:divide-x divide-slate-100 dark:divide-slate-800">
+      <div className={cn("relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col", currentQuestion.passage ? "lg:grid lg:grid-cols-2 lg:divide-x divide-slate-100 dark:divide-slate-800" : "")}>
         {isPaused && (
           <div className="absolute inset-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center col-span-full">
             <Pause className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-4" />
@@ -322,7 +322,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
 
         {currentQuestion.passage ? (
           <>
-            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 lg:max-h-[700px] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
               <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3 uppercase tracking-wider">Reference Passage</div>
               <div className="text-[15px] leading-relaxed text-slate-800 dark:text-slate-200 markdown-body prose prose-slate dark:prose-invert max-w-none prose-p:my-2">
                 <ReactMarkdown 
@@ -334,8 +334,8 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
               </div>
             </div>
 
-            <div className="flex flex-col lg:h-[60vh] bg-white dark:bg-slate-900">
-              <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 shrink-0 max-h-[50%]">
+            <div className="flex flex-col bg-white dark:bg-slate-900 lg:max-h-[700px]">
+              <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 shrink-0 lg:max-h-[50%]">
                 <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
@@ -390,7 +390,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </>
         ) : (
           <>
-            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 flex flex-col justify-center">
+            <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-center">
               <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
@@ -401,8 +401,8 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
               </div>
             </div>
 
-            <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 lg:h-[60vh] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 flex flex-col justify-center">
-              <div className="space-y-3 w-full">
+            <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 flex flex-col justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                 {currentQuestion.options.map((option, i) => {
                   const isSelected = selectedOption === option;
                   let optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300";
