@@ -50,6 +50,21 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isViewingPastReport, setIsViewingPastReport] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(initialQuotaStatus);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+
+  // Online/Offline Listener
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Firestore Quota Listener
   useEffect(() => {
@@ -677,6 +692,12 @@ export default function App() {
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Smart-Prep</span>
+            {!isOnline && (
+              <span className="ml-3 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                Offline
+              </span>
+            )}
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
