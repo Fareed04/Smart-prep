@@ -644,7 +644,19 @@ ${JSON.stringify(questions, null, 2)}`;
       apiPromise.then(resolve).catch(reject).finally(() => clearTimeout(timer));
     });
 
-    const responseText = response.text || "[]";
+    let responseText = response.text || "[]";
+    responseText = responseText.trim();
+    
+    if (responseText.startsWith('[') && !responseText.endsWith(']')) {
+      console.warn("[Gemini] Truncated JSON detected in migration. Attempting repair...");
+      const lastObjectEnd = responseText.lastIndexOf('}');
+      if (lastObjectEnd !== -1) {
+        responseText = responseText.substring(0, lastObjectEnd + 1) + ']';
+      } else {
+        responseText += ']';
+      }
+    }
+    
     const migrated = JSON.parse(responseText) as Question[];
     return migrated;
   } catch (error) {
