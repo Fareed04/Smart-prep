@@ -12,7 +12,7 @@ import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
-import { LogOut, LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
+import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
 
@@ -51,6 +51,32 @@ export default function App() {
   const [isViewingPastReport, setIsViewingPastReport] = useState(false);
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(initialQuotaStatus);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+  const [isCharging, setIsCharging] = useState<boolean>(false);
+
+  // Battery Status Listener
+  useEffect(() => {
+    if ('getBattery' in navigator) {
+      // @ts-ignore
+      navigator.getBattery().then((battery: any) => {
+        setBatteryLevel(battery.level);
+        setIsCharging(battery.charging);
+
+        const updateBatteryInfo = () => {
+          setBatteryLevel(battery.level);
+          setIsCharging(battery.charging);
+        };
+
+        battery.addEventListener('levelchange', updateBatteryInfo);
+        battery.addEventListener('chargingchange', updateBatteryInfo);
+
+        return () => {
+          battery.removeEventListener('levelchange', updateBatteryInfo);
+          battery.removeEventListener('chargingchange', updateBatteryInfo);
+        };
+      });
+    }
+  }, []);
 
   // Online/Offline Listener
   useEffect(() => {
@@ -701,6 +727,24 @@ export default function App() {
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {batteryLevel !== null && (
+              <div 
+                className="flex items-center space-x-1 text-slate-600 dark:text-slate-400 text-sm font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-full"
+                title={isCharging ? "Charging" : `Battery: ${Math.round(batteryLevel * 100)}%`}
+              >
+                {isCharging ? (
+                  <BatteryCharging className="w-4 h-4 text-green-500" />
+                ) : batteryLevel > 0.5 ? (
+                  <BatteryFull className="w-4 h-4" />
+                ) : batteryLevel > 0.2 ? (
+                  <BatteryMedium className="w-4 h-4" />
+                ) : (
+                  <BatteryLow className="w-4 h-4 text-red-500" />
+                )}
+                <span className="text-xs hidden sm:inline">{Math.round(batteryLevel * 100)}%</span>
+              </div>
+            )}
+
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
