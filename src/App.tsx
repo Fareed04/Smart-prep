@@ -53,6 +53,7 @@ export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState<boolean>(false);
+  const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
 
   // Battery Status Listener
   useEffect(() => {
@@ -65,6 +66,9 @@ export default function App() {
         const updateBatteryInfo = () => {
           setBatteryLevel(battery.level);
           setIsCharging(battery.charging);
+          if (battery.charging || battery.level >= 0.1) {
+            setDismissedBatteryWarning(false);
+          }
         };
 
         battery.addEventListener('levelchange', updateBatteryInfo);
@@ -783,6 +787,29 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {batteryLevel !== null && batteryLevel < 0.10 && !isCharging && !dismissedBatteryWarning && (
+        <div className="bg-red-50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800/50 p-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between">
+            <div className="flex items-start sm:items-center space-x-3">
+              <BatteryWarning className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 sm:mt-0 flex-shrink-0" />
+              <div className="text-sm text-red-800 dark:text-red-200">
+                <span className="font-semibold block sm:inline mb-1 sm:mb-0 sm:mr-2">Low Battery Warning ({Math.round(batteryLevel * 100)}%)</span>
+                Please connect to a power source or save your progress before starting a long assessment.
+              </div>
+            </div>
+            <button 
+              onClick={() => setDismissedBatteryWarning(true)}
+              className="p-1.5 hover:bg-red-100 dark:hover:bg-red-800/50 rounded-lg text-red-600 dark:text-red-400 transition-colors ml-4 flex-shrink-0"
+              title="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className={cn("flex-1 flex flex-col", appState !== 'quiz' ? "py-8" : "py-4")}>
         {appState === 'login' && <LoginScreen />}
