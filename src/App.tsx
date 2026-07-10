@@ -12,7 +12,7 @@ import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
-import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning } from 'lucide-react';
+import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
 
@@ -54,6 +54,28 @@ export default function App() {
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState<boolean>(false);
   const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
+  const [hasBatteryAutoSaved, setHasBatteryAutoSaved] = useState<boolean>(false);
+
+  // Trigger auto-save on critical battery level
+  useEffect(() => {
+    if (batteryLevel !== null && batteryLevel < 0.10 && !isCharging) {
+      if (appState === 'quiz' && quizState.questions.length > 0 && !quizState.isFinished) {
+        if (!hasBatteryAutoSaved) {
+          try {
+            localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(quizState));
+            localStorage.setItem(STORAGE_KEY_APP_STATE, 'quiz');
+            setHasBatteryAutoSaved(true);
+            console.log("[Battery] Critical battery auto-save completed successfully.");
+          } catch (e) {
+            console.error("[Battery] Critical battery auto-save failed:", e);
+          }
+        }
+      }
+    } else {
+      // Reset auto-save state if battery is healthy or charging
+      setHasBatteryAutoSaved(false);
+    }
+  }, [batteryLevel, isCharging, appState, quizState, hasBatteryAutoSaved]);
 
   // Battery Status Listener
   useEffect(() => {
@@ -795,7 +817,13 @@ export default function App() {
               <BatteryWarning className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 sm:mt-0 flex-shrink-0" />
               <div className="text-sm text-red-800 dark:text-red-200">
                 <span className="font-semibold block sm:inline mb-1 sm:mb-0 sm:mr-2">Low Battery Warning ({Math.round(batteryLevel * 100)}%)</span>
-                Please connect to a power source or save your progress before starting a long assessment.
+                {appState === 'quiz' && hasBatteryAutoSaved ? (
+                  <span className="inline-flex items-center gap-1.5 flex-wrap sm:inline">
+                    Your current quiz progress has been <span className="font-semibold text-green-700 dark:text-green-400 inline-flex items-center gap-0.5"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" /> automatically saved</span> to local storage to prevent data loss. Please connect to a power source.
+                  </span>
+                ) : (
+                  "Please connect to a power source or save your progress before starting a long assessment."
+                )}
               </div>
             </div>
             <button 
