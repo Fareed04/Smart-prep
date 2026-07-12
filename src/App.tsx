@@ -55,6 +55,7 @@ export default function App() {
   const [isCharging, setIsCharging] = useState<boolean>(false);
   const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
   const [hasBatteryAutoSaved, setHasBatteryAutoSaved] = useState<boolean>(false);
+  const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
 
   // Trigger auto-save on critical battery level
   useEffect(() => {
@@ -138,10 +139,11 @@ export default function App() {
       if (savedPool) setExtractedPool(JSON.parse(savedPool));
       if (savedQuizState) setQuizState(JSON.parse(savedQuizState));
       
-      // Only restore app state if it's quiz or ready, to allow resuming locally
-      if (savedAppState && (savedAppState === 'quiz' || savedAppState === 'ready')) {
-        setAppState(savedAppState as AppState);
-      }
+      // Determine if there is a saved resumable session, but we will prompt via the dashboard instead
+      // of forcing the user into the quiz immediately.
+      // if (savedAppState && (savedAppState === 'quiz' || savedAppState === 'ready')) {
+      //   setAppState(savedAppState as AppState);
+      // }
     } catch (e) {
       console.error("Failed to restore local session", e);
     }
@@ -277,9 +279,11 @@ export default function App() {
 
         const savedAppState = localStorage.getItem(STORAGE_KEY_APP_STATE);
         if (hasActiveSession) {
-          setAppState('quiz');
+          setAppState('dashboard');
+          setShowResumeModal(true);
         } else if (savedAppState && (savedAppState === 'quiz' || savedAppState === 'ready')) {
-          setAppState(savedAppState as AppState);
+          setAppState('dashboard');
+          setShowResumeModal(true);
         } else {
           setAppState('dashboard');
         }
@@ -842,23 +846,68 @@ export default function App() {
       <main className={cn("flex-1 flex flex-col", appState !== 'quiz' ? "py-8" : "py-4")}>
         {appState === 'login' && <LoginScreen />}
         {appState === 'dashboard' && (
-          <Dashboard 
-            onStartNew={() => {
-              if (extractedPool.length > 0) {
-                setAppState('ready');
-              } else {
-                setAppState('upload');
-              }
-            }}
-            onQuickStart={handleQuickStart}
-            onUpgradePool={handleUpgradePool}
-            onViewReport={handleViewReport}
-            onOpenStudyHub={() => setAppState('study')}
-            errorMessage={errorMessage}
-            pool={extractedPool}
-            progress={questionProgress}
-            userProfile={userProfile}
-          />
+          <>
+            <Dashboard 
+              onStartNew={() => {
+                if (extractedPool.length > 0) {
+                  setAppState('ready');
+                } else {
+                  setAppState('upload');
+                }
+              }}
+              onQuickStart={handleQuickStart}
+              onUpgradePool={handleUpgradePool}
+              onViewReport={handleViewReport}
+              onOpenStudyHub={() => setAppState('study')}
+              errorMessage={errorMessage}
+              pool={extractedPool}
+              progress={questionProgress}
+              userProfile={userProfile}
+            />
+            {showResumeModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                    <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Resume Previous Quiz?</h3>
+                  <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    We found an unfinished assessment in your progress. Would you like to pick up where you left off?
+                  </p>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowResumeModal(false);
+                        setQuizState({
+                          questions: [],
+                          currentIndex: 0,
+                          answers: {},
+                          isFinished: false,
+                          timeRemaining: 60 * 60,
+                          flaggedQuestions: []
+                        });
+                        localStorage.removeItem(STORAGE_KEY_STATE);
+                        localStorage.removeItem(STORAGE_KEY_APP_STATE);
+                      }}
+                      className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-colors"
+                    >
+                      Start Fresh
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowResumeModal(false);
+                        const savedState = localStorage.getItem(STORAGE_KEY_APP_STATE);
+                        setAppState(savedState === 'ready' ? 'ready' : 'quiz');
+                      }}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors shadow-sm shadow-blue-600/20"
+                    >
+                      Resume Quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
         {(appState === 'upload' || appState === 'processing') && (
           <UploadScreen 
