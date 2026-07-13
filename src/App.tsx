@@ -38,6 +38,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [quizDuration, setQuizDuration] = useState<number>(60);
+  const [isPracticeMode, setIsPracticeMode] = useState<boolean>(false);
   const [quizState, setQuizState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
@@ -432,11 +433,12 @@ export default function App() {
       answers: {},
       isFinished: false,
       timeRemaining: quizDuration * 60,
-      flaggedQuestions: []
+      flaggedQuestions: [],
+      isPracticeMode: isPracticeMode
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty, quizDuration]);
+  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty, quizDuration, isPracticeMode]);
 
   const handleQuickStart = React.useCallback(() => {
     // Select 10 random questions from the pool
@@ -939,6 +941,8 @@ export default function App() {
             setSelectedDifficulty={setSelectedDifficulty}
             quizDuration={quizDuration}
             setQuizDuration={setQuizDuration}
+            isPracticeMode={isPracticeMode}
+            setIsPracticeMode={setIsPracticeMode}
           />
         )}
         {appState === 'quiz' && (

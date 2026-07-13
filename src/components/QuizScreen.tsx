@@ -84,6 +84,18 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
     const timer = setInterval(() => {
       if (!isPaused) {
         setState((prev) => {
+          if (prev.isPracticeMode) {
+            const currentQuestionId = prev.questions[prev.currentIndex].id;
+            const currentSpent = prev.timeSpentPerQuestion?.[currentQuestionId] || 0;
+            return {
+              ...prev,
+              timeSpentPerQuestion: {
+                ...(prev.timeSpentPerQuestion || {}),
+                [currentQuestionId]: currentSpent + 1
+              }
+            };
+          }
+
           if (prev.timeRemaining <= 0) {
             clearInterval(timer);
             handleFinish();
@@ -285,18 +297,25 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           >
             {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
           </button>
-          <div className={cn(
-            "flex items-center space-x-2 px-4 py-2 rounded-full font-mono font-medium text-base sm:text-lg transition-colors",
-            state.timeRemaining > 0 && state.timeRemaining <= 300 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400" : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-          )}>
-            <Clock className={cn("w-4 h-4 sm:w-5 sm:h-5", state.timeRemaining > 0 && state.timeRemaining <= 300 && "animate-pulse")} />
-            <span>{formatTime(state.timeRemaining)}</span>
-          </div>
+          {state.isPracticeMode ? (
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full font-mono font-medium text-sm sm:text-base transition-colors bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Practice Mode</span>
+            </div>
+          ) : (
+            <div className={cn(
+              "flex items-center space-x-2 px-4 py-2 rounded-full font-mono font-medium text-base sm:text-lg transition-colors",
+              state.timeRemaining > 0 && state.timeRemaining <= 300 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400" : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
+            )}>
+              <Clock className={cn("w-4 h-4 sm:w-5 sm:h-5", state.timeRemaining > 0 && state.timeRemaining <= 300 && "animate-pulse")} />
+              <span>{formatTime(state.timeRemaining)}</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Warning Banner */}
-      {state.timeRemaining > 0 && state.timeRemaining <= 300 && (
+      {!state.isPracticeMode && state.timeRemaining > 0 && state.timeRemaining <= 300 && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
           <AlertCircle className="w-5 h-5 flex-shrink-0 animate-pulse" />
           <p className="text-sm font-medium">Less than 5 minutes remaining! Please review your answers before the simulation ends.</p>

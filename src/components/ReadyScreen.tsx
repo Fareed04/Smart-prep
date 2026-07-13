@@ -17,6 +17,8 @@ interface ReadyScreenProps {
   setSelectedDifficulty: (val: string) => void;
   quizDuration: number;
   setQuizDuration: (val: number) => void;
+  isPracticeMode: boolean;
+  setIsPracticeMode: (val: boolean) => void;
 }
 
 export function ReadyScreen({ 
@@ -33,7 +35,9 @@ export function ReadyScreen({
   selectedDifficulty,
   setSelectedDifficulty,
   quizDuration,
-  setQuizDuration
+  setQuizDuration,
+  isPracticeMode,
+  setIsPracticeMode
 }: ReadyScreenProps) {
   // Treat undefined company as 'KPMG' for legacy questions
   const companiesInPool = Array.from(new Set(pool.map(q => q.company || 'KPMG'))) as string[];
@@ -202,29 +206,66 @@ export function ReadyScreen({
             </button>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-medium">
-              <div className="flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span>Quiz Duration</span>
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-6">
+            {/* Practice Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 text-left">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white">Practice Mode (No Timer)</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Remove time limits for a relaxed experience.</div>
+                </div>
               </div>
-              <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-bold">
-                {quizDuration} minutes
+              <button
+                type="button"
+                onClick={() => setIsPracticeMode(!isPracticeMode)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2",
+                  isPracticeMode ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
+                )}
+                role="switch"
+                aria-checked={isPracticeMode}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    isPracticeMode ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+
+            {/* Quiz Duration Slider */}
+            {!isPracticeMode ? (
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 font-medium">
+                  <span>Quiz Duration</span>
+                  <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-bold">
+                    {quizDuration} minutes
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="120"
+                  step="5"
+                  value={quizDuration}
+                  onChange={(e) => setQuizDuration(parseInt(e.target.value, 10))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-xs text-slate-500 font-medium">
+                  <span>10 min</span>
+                  <span>120 min</span>
+                </div>
               </div>
-            </div>
-            <input
-              type="range"
-              min="10"
-              max="120"
-              step="5"
-              value={quizDuration}
-              onChange={(e) => setQuizDuration(parseInt(e.target.value, 10))}
-              className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="flex justify-between text-xs text-slate-500 font-medium">
-              <span>10 min</span>
-              <span>120 min</span>
-            </div>
+            ) : (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-sm text-blue-600 dark:text-blue-400 font-medium text-left bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl">
+                ✨ Untimed Practice Mode is active. Focus on learning without any time constraints!
+              </div>
+            )}
           </div>
 
           {poolSize < 30 ? (

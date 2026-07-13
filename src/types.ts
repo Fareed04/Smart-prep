@@ -46,6 +46,7 @@ export interface QuizState {
   flaggedQuestions: string[]; // array of questionIds
   sessionId?: string;
   isAdaptive?: boolean;
+  isPracticeMode?: boolean;
   categoryDifficulties?: Record<string, 'easy' | 'medium' | 'hard'>; // Tracks current difficulty for each category
 }
 
