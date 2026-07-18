@@ -155,6 +155,29 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
       score: session.score,
     }));
 
+  const numericalQuestions = pool.filter(q => q.category === 'Numerical Reasoning');
+  const masteredNumerical = numericalQuestions.filter(q => progress[q.id]?.mastered).length;
+  const isNumericalMaster = numericalQuestions.length > 0 && (masteredNumerical / numericalQuestions.length) >= 0.5;
+
+  const verbalQuestions = pool.filter(q => q.category === 'Verbal Reasoning');
+  const masteredVerbal = verbalQuestions.filter(q => progress[q.id]?.mastered).length;
+  const isVerbalMaster = verbalQuestions.length > 0 && (masteredVerbal / verbalQuestions.length) >= 0.5;
+
+  const isEarlyBird = sessions.some(s => new Date(s.createdAt).getHours() < 8);
+  const isNightOwl = sessions.some(s => new Date(s.createdAt).getHours() >= 22);
+  const tenDayStreak = (userProfile?.streak || 0) >= 10;
+
+  const badges = [
+    { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
+    { id: 'streak3', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
+    { id: 'streak10', title: 'Unstoppable', icon: '⚡', active: tenDayStreak, desc: '10-day streak' },
+    { id: 'early', title: 'Early Bird Learner', icon: '🌅', active: isEarlyBird, desc: 'Practice before 8 AM' },
+    { id: 'night', title: 'Night Owl', icon: '🦉', active: isNightOwl, desc: 'Practice after 10 PM' },
+    { id: 'numerical', title: 'Master of Numerical Reasoning', icon: '🧮', active: isNumericalMaster, desc: '50% Numerical Mastery' },
+    { id: 'master', title: 'Assessment Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Total Mastery' },
+    { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -404,12 +427,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
           </h2>
           
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 h-[calc(100%-3rem)] auto-rows-max">
-            {[
-              { id: 'first', title: 'First Steps', icon: '🌱', active: sessions.length > 0, desc: 'Complete 1 simulation' },
-              { id: 'streak', title: 'Consistent', icon: '🔥', active: (userProfile?.streak || 0) >= 3, desc: '3-day streak' },
-              { id: 'master', title: 'Assessment Specialist', icon: '🎓', active: masteryPercentage >= 50, desc: '50% Mastery' },
-              { id: 'perfect', title: 'Flawless', icon: '💎', active: sessions.some(s => s.score === 100), desc: '100% Score' }
-            ].map((badge) => (
+            {badges.map((badge) => (
               <div 
                 key={badge.id}
                 className={`p-4 rounded-2xl border text-center transition-all duration-300 flex flex-col justify-center items-center ${
