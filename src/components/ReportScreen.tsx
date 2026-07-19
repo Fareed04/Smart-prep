@@ -6,7 +6,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 interface ReportScreenProps {
   state: QuizState;
@@ -80,16 +80,17 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
     if (!reportRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: document.documentElement.classList.contains('dark') ? '#020617' : '#f8fafc'
+      const imgData = await toPng(reportRef.current, {
+        pixelRatio: 2,
+        backgroundColor: document.documentElement.classList.contains('dark') ? '#020617' : '#f8fafc',
       });
-      const imgData = canvas.toDataURL('image/png');
+      
+      const width = reportRef.current.offsetWidth;
+      const height = reportRef.current.offsetHeight;
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = (height * pdfWidth) / width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`SmartPrep-Report-${new Date().getTime()}.pdf`);
