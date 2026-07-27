@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2, Cloud } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2, Cloud, Focus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
@@ -33,6 +33,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [hintCooldown, setHintCooldown] = useState(0);
   const [activeHints, setActiveHints] = useState<Record<string, boolean>>({});
   const [showSyncToast, setShowSyncToast] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
 
@@ -250,8 +251,16 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const isCurrentFlagged = state.flaggedQuestions?.includes(currentQuestion.id);
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500 pb-8">
-      {/* Sync Toast */}
+    <div className={cn(
+      "animate-in fade-in duration-500",
+      isFocusMode 
+        ? "fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 overflow-y-auto px-4 sm:px-8 py-6 sm:py-8 flex flex-col"
+        : "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
+    )}>
+      <div className={cn(
+        isFocusMode ? "w-full max-w-5xl mx-auto flex-1 flex flex-col" : "w-full"
+      )}>
+        {/* Sync Toast */}
       {showSyncToast && (
         <div className="fixed top-20 right-4 sm:right-8 bg-slate-900/90 dark:bg-slate-800/90 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 z-50">
           <Cloud className="w-4 h-4 text-emerald-400" />
@@ -282,6 +291,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           >
            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isCurrentFlagged ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
            <span className="hidden sm:inline text-sm font-medium">{isCurrentFlagged ? 'Flagged' : 'Flag'}</span>
+          </button>
+          <button
+            onClick={() => setIsFocusMode(!isFocusMode)}
+            className={cn(
+              "p-2 rounded-full transition-colors flex items-center space-x-1 px-3",
+              isFocusMode 
+                ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400" 
+                : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            )}
+            title={isFocusMode ? "Exit Focus Mode" : "Focus Mode"}
+          >
+            <Focus className="w-5 h-5" />
+            <span className="hidden sm:inline text-sm font-medium">Focus</span>
           </button>
           <button
             onClick={() => setShowLeaveConfirmation(true)}
@@ -467,38 +489,40 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
       </div>
 
       {/* Question Navigation Grid */}
-      <div className="mb-6 flex flex-wrap gap-2 justify-center">
-        {state.questions.map((q, idx) => {
-          const isAnswered = !!state.answers[q.id];
-          const isCurrent = idx === state.currentIndex;
-          const isFlagged = state.flaggedQuestions?.includes(q.id);
+      {!isFocusMode && (
+        <div className="mb-6 flex flex-wrap gap-2 justify-center">
+          {state.questions.map((q, idx) => {
+            const isAnswered = !!state.answers[q.id];
+            const isCurrent = idx === state.currentIndex;
+            const isFlagged = state.flaggedQuestions?.includes(q.id);
 
-          return (
-            <button
-              key={`${q.id}-${idx}`}
-              onClick={() => {
-                setShowExplanation(false);
-                setIsAnswerChecked(!!state.answers[q.id]);
-                setState((prev) => ({ ...prev, currentIndex: idx }));
-              }}
-              disabled={isPaused}
-              className={cn(
-                "relative flex items-center justify-center w-10 h-10 rounded-lg text-sm font-semibold transition-all border-2",
-                isCurrent
-                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : isAnswered
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-500/50 dark:text-emerald-400"
-                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600"
-              )}
-            >
-              {idx + 1}
-              {isFlagged && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={`${q.id}-${idx}`}
+                onClick={() => {
+                  setShowExplanation(false);
+                  setIsAnswerChecked(!!state.answers[q.id]);
+                  setState((prev) => ({ ...prev, currentIndex: idx }));
+                }}
+                disabled={isPaused}
+                className={cn(
+                  "relative flex items-center justify-center w-10 h-10 rounded-lg text-sm font-semibold transition-all border-2",
+                  isCurrent
+                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    : isAnswered
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-500/50 dark:text-emerald-400"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-600"
+                )}
+              >
+                {idx + 1}
+                {isFlagged && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white dark:border-slate-900" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Controls & Explanation */}
       <div className="space-y-6">
@@ -639,6 +663,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
         </div>
       )}
 
+      </div>
       <Calculator />
     </div>
   );
