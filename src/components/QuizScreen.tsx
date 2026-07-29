@@ -34,6 +34,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [activeHints, setActiveHints] = useState<Record<string, boolean>>({});
   const [showSyncToast, setShowSyncToast] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showFocusWarning, setShowFocusWarning] = useState(false);
 
   const currentQuestion = state.questions[state.currentIndex];
 
@@ -43,6 +44,18 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
       return () => clearTimeout(timer);
     }
   }, [hintCooldown, isPaused]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isFocusMode && !isPaused && !state.isFinished && !isFinishing && !showFocusWarning) {
+        setShowFocusWarning(true);
+        setIsPaused(true);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isFocusMode, isPaused, state.isFinished, isFinishing, showFocusWarning]);
 
   const stateRef = React.useRef(state);
   useEffect(() => {
@@ -636,6 +649,30 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
           </div>
         )}
       </div>
+
+      {/* Focus Warning Modal */}
+      {showFocusWarning && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
+          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-md w-full animate-in zoom-in-95 duration-200 flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center mb-6">
+              <Focus className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Focus Interrupted</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-8">
+              You left the browser tab while in Focus Mode. To maintain simulation integrity, your session has been paused.
+            </p>
+            <button
+              onClick={() => {
+                setShowFocusWarning(false);
+                setIsPaused(false);
+              }}
+              className="w-full px-6 py-4 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md"
+            >
+              Resume Focus
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Leave Confirmation Modal */}
       {showLeaveConfirmation && (
