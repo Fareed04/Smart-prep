@@ -861,6 +861,14 @@ export default function App() {
               onUpgradePool={handleUpgradePool}
               onViewReport={handleViewReport}
               onOpenStudyHub={() => setAppState('study')}
+              onPracticeCategory={(category) => {
+                setSelectedCategory(category);
+                if (extractedPool.length > 0) {
+                  setAppState('ready');
+                } else {
+                  setAppState('upload');
+                }
+              }}
               errorMessage={errorMessage}
               pool={extractedPool}
               progress={questionProgress}

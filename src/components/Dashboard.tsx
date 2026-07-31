@@ -7,6 +7,7 @@ import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen,
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO, isSameDay, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { StudyRoadmap } from './StudyRoadmap';
 
 interface DashboardProps {
   onStartNew: () => void;
@@ -14,13 +15,14 @@ interface DashboardProps {
   onUpgradePool?: () => void;
   onViewReport: (session: QuizSession) => void;
   onOpenStudyHub: () => void;
+  onPracticeCategory?: (category: string) => void;
   errorMessage?: string | null;
   pool: Question[];
   progress: Record<string, QuestionProgress>;
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewReport, onOpenStudyHub, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewReport, onOpenStudyHub, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFetchingTips, setIsFetchingTips] = useState(false);
@@ -416,6 +418,16 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
           </div>
         )}
       </div>
+
+      {/* Study Roadmap Component */}
+      <StudyRoadmap
+        pool={pool}
+        progress={progress}
+        sessions={sessions}
+        userProfile={userProfile}
+        onPracticeCategory={onPracticeCategory}
+        onOpenStudyHub={onOpenStudyHub}
+      />
 
       {/* Achievements and Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
