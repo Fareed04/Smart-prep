@@ -3,7 +3,7 @@ import Markdown from 'react-markdown';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
-import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star } from 'lucide-react';
+import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star, Sparkles } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO, isSameDay, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -149,6 +149,30 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
   const dailyGoal = userProfile?.dailyGoal || 20;
   const goalProgress = Math.min((questionsAnsweredToday / dailyGoal) * 100, 100);
 
+  const categoryStats = useMemo(() => {
+    const stats: Record<string, { total: number; mastered: number }> = {};
+    pool.forEach(q => {
+      const cat = q.category || 'General';
+      if (!stats[cat]) {
+        stats[cat] = { total: 0, mastered: 0 };
+      }
+      stats[cat].total += 1;
+      if (progress[q.id]?.mastered) {
+        stats[cat].mastered += 1;
+      }
+    });
+
+    return Object.entries(stats).map(([category, data]) => {
+      return {
+        category,
+        mastery: data.total > 0 ? (data.mastered / data.total) * 100 : 0,
+        total: data.total
+      };
+    }).sort((a, b) => a.mastery - b.mastery);
+  }, [pool, progress]);
+
+  const recommendedCategories = categoryStats.filter(c => c.mastery < 100).slice(0, 3);
+
   const chartData = [...sessions]
     .slice(0, 10)
     .reverse()
@@ -270,6 +294,33 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
           </div>
           <div className="prose prose-slate dark:prose-invert max-w-none text-sm markdown-body">
             <Markdown>{studyTips}</Markdown>
+          </div>
+        </div>
+      )}
+
+      {/* Recommended For You */}
+      {recommendedCategories.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            <Sparkles className="w-6 h-6 text-indigo-500" />
+            <span>Recommended For You</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recommendedCategories.map((rec) => (
+              <div key={rec.category} className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white mb-1">{rec.category}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Mastery: {Math.round(rec.mastery)}%</p>
+                </div>
+                <button
+                  onClick={() => onPracticeCategory?.(rec.category)}
+                  className="mt-4 flex items-center justify-center space-x-2 px-4 py-2 w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 font-medium rounded-xl transition-colors"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Practice</span>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
