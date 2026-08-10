@@ -168,6 +168,18 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
     return adviceMap[category] || 'You need more practice here. Focus on "Work Smarter" tactics for this section.';
   };
 
+  const RECOMMENDED_TIMES: Record<string, number> = {
+    'Numerical Reasoning': 60,
+    'Verbal Reasoning': 45,
+    'Logical Reasoning': 60,
+    'Situational Judgement': 45,
+    'Reading Comprehension': 90,
+    'Abstract Reasoning': 60,
+    'Data Analysis': 75,
+    'Sentence Correction': 30,
+    'Critical Reasoning': 75,
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -334,6 +346,64 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
                         style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
                       />
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mt-8">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <span>Speed & Pacing Analysis</span>
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Compare your average time per question against recommended targets.
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="space-y-6">
+              {Object.entries(categoryStats).map(([category, stats], i) => {
+                const avgTime = stats.total > 0 ? stats.timeSpent / stats.total : 0;
+                const recommendedTime = RECOMMENDED_TIMES[category] || 60; // Default 60s
+                const isOverTime = avgTime > recommendedTime;
+                const timeDiff = Math.abs(avgTime - recommendedTime);
+                const percentage = Math.min((avgTime / (recommendedTime * 2)) * 100, 100);
+
+                return (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-slate-900 dark:text-white">{category}</span>
+                      <div className="flex flex-col items-end">
+                        <span className={isOverTime ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}>
+                          Avg: {formatTime(avgTime)} / q
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          Target: {formatTime(recommendedTime)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="relative h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          isOverTime ? "bg-red-500 dark:bg-red-400" : "bg-green-500 dark:bg-green-400"
+                        )}
+                        style={{ width: `${percentage}%` }}
+                      />
+                      {/* Target line - positioned at 50% since we scale the bar up to 2x recommended time */}
+                      <div 
+                        className="absolute top-0 bottom-0 w-0.5 bg-slate-900 dark:bg-white z-10"
+                        style={{ left: '50%' }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {isOverTime 
+                        ? `You spent ${Math.round(timeDiff)}s longer than recommended on average.`
+                        : `Great pacing! You were ${Math.round(timeDiff)}s faster than the target on average.`}
+                    </p>
                   </div>
                 );
               })}
