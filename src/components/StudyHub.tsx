@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
-import { StudyGuide } from '../types';
-import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy, RefreshCw, ArrowRight, ArrowLeft, Layers } from 'lucide-react';
-import { format } from 'date-fns';
+import { StudyGuide, QuizSession } from '../types';
+import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy, RefreshCw, ArrowRight, ArrowLeft, Layers, Calendar as CalendarIcon, Star } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, subMonths, addMonths, startOfWeek, endOfWeek, isToday } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { generateStudyGuide, generateKnowledgeCheck } from '../lib/gemini';
@@ -33,13 +33,122 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   const [checkAnswers, setCheckAnswers] = useState<Record<string, string>>({});
   const [showCheckResults, setShowCheckResults] = useState(false);
   
-  const [hubMode, setHubMode] = useState<'library' | 'flashcards'>('library');
+  const [hubMode, setHubMode] = useState<'library' | 'flashcards' | 'calendar'>('library');
   const [flashcardIndex, setFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  const [sessions, setSessions] = useState<QuizSession[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   
   const flashcards = useMemo(() => {
     return [...pool].sort(() => 0.5 - Math.random());
   }, [pool]);
+
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart);
+    const endDate = endOfWeek(monthEnd);
+
+    const dateFormat = "d";
+    const rows = [];
+    let days = [];
+    let day = startDate;
+    let formattedDate = "";
+
+    const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+    const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+    // Get all dates where a mock assessment was completed
+    const focusDays = sessions
+      .filter(s => s.isMockAssessment || (!s.isPracticeMode && s.totalQuestions >= 10))
+      .map(s => s.createdAt);
+
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        formattedDate = format(day, dateFormat);
+        const cloneDay = day;
+        const isCurrentMonth = isSameMonth(day, monthStart);
+        const isFocusDay = focusDays.some(d => isSameDay(d, cloneDay));
+        const isTodayDate = isToday(cloneDay);
+
+        days.push(
+          <div
+            key={day.toString()}
+            className={cn(
+              "p-4 flex flex-col items-center justify-center border-t border-slate-100 dark:border-slate-800 transition-colors relative min-h-[100px]",
+              !isCurrentMonth ? "bg-slate-50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-600" : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200",
+              isFocusDay && isCurrentMonth ? "bg-indigo-50/50 dark:bg-indigo-900/10" : ""
+            )}
+          >
+            <span className={cn(
+              "text-sm font-semibold w-8 h-8 flex items-center justify-center rounded-full mb-2",
+              isTodayDate ? "bg-blue-600 text-white" : "",
+              isFocusDay && !isTodayDate ? "text-indigo-600 dark:text-indigo-400" : ""
+            )}>
+              {formattedDate}
+            </span>
+            
+            {isFocusDay && (
+              <div className="absolute bottom-3 flex flex-col items-center animate-in zoom-in-75 duration-300">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500 mb-1 drop-shadow-sm" />
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide">Focus</span>
+              </div>
+            )}
+          </div>
+        );
+        day = addMonths(day, 0); // Need to use addDays, let's change this
+        // Ah, addDays is not imported, let's import it or just use simple date math
+        day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+      }
+      rows.push(
+        <div className="grid grid-cols-7 w-full" key={day.toString()}>
+          {days}
+        </div>
+      );
+      days = [];
+    }
+
+    return (
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <CalendarIcon className="w-6 h-6 text-indigo-500" />
+              <span>Focus Calendar</span>
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Track your mock assessment completion history.
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button onClick={prevMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </button>
+            <span className="text-lg font-bold text-slate-800 dark:text-slate-200 min-w-[120px] text-center">
+              {format(monthStart, "MMMM yyyy")}
+            </span>
+            <button onClick={nextMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <ChevronLeft className="w-5 h-5 rotate-180 text-slate-600 dark:text-slate-400" />
+            </button>
+          </div>
+        </div>
+
+        <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <div key={d} className="p-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {d}
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col">
+            {rows}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const sections = useMemo(() => {
     if (!viewingGuide) return [];
@@ -93,15 +202,22 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   ];
 
   useEffect(() => {
-    const q = query(
+    const qGuides = query(
       collection(db, 'studyGuides'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc')
     );
 
-    let unsubscribe: () => void;
+    const qSessions = query(
+      collection(db, 'quizSessions'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    let unsubscribeGuides: () => void;
+    let unsubscribeSessions: () => void;
     
-    unsubscribe = onSnapshot(q, (snapshot) => {
+    unsubscribeGuides = onSnapshot(qGuides, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -117,11 +233,23 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
         setError(err.message);
       }
       setLoading(false);
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeGuides) unsubscribeGuides();
+    });
+
+    unsubscribeSessions = onSnapshot(qSessions, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      })) as QuizSession[];
+      setSessions(data);
+    }, (error) => {
+      console.error("Error fetching sessions:", error);
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeGuides) unsubscribeGuides();
+      if (unsubscribeSessions) unsubscribeSessions();
     };
   }, [user.uid]);
 
@@ -435,6 +563,16 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                 <Layers className="w-4 h-4" />
                 <span>Flashcards</span>
               </button>
+              <button
+                onClick={() => setHubMode('calendar')}
+                className={cn(
+                  "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  hubMode === 'calendar' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                )}
+              >
+                <CalendarIcon className="w-4 h-4" />
+                <span>Focus Calendar</span>
+              </button>
             </div>
             
             {hubMode === 'library' && (
@@ -450,7 +588,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
         )}
       </div>
 
-      {hubMode === 'library' ? (
+      {hubMode === 'library' && (
         <>
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-start space-x-3">
@@ -595,7 +733,9 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
             </div>
           )}
         </>
-      ) : (
+      )}
+      
+      {hubMode === 'flashcards' && (
         <div className="flex flex-col items-center justify-center pt-8">
           {flashcards.length === 0 ? (
              <div className="text-center text-slate-500 dark:text-slate-400">
@@ -698,6 +838,8 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
           )}
         </div>
       )}
+
+      {hubMode === 'calendar' && renderCalendar()}
     </div>
   );
 }

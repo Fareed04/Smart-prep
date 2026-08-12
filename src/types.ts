@@ -63,7 +63,8 @@ export interface QuizSession {
   answers?: string;
   createdAt: Date;
   isAdaptive?: boolean;
-  finalCategoryDifficulties?: Record<string, 'easy' | 'medium' | 'hard'>; 
+  isPracticeMode?: boolean;
+  isMockAssessment?: boolean;
 }
 
 export interface StudyGuide {

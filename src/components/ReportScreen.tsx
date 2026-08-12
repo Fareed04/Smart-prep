@@ -59,6 +59,8 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           company: company || 'All',
           questions: JSON.stringify(state.questions),
           answers: JSON.stringify(state.answers),
+          isPracticeMode: state.isPracticeMode || false,
+          isMockAssessment: !state.isPracticeMode && state.questions.length >= 10,
           createdAt: serverTimestamp()
         });
         setIsSaved(true);
