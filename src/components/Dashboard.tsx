@@ -423,7 +423,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <Target className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Daily Goal</h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Daily Goal Progress</h2>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">Answer {dailyGoal} questions</p>
               <div className="mt-4">
