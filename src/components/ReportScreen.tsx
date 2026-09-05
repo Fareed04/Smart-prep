@@ -207,7 +207,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
-          <span className="text-sm font-medium">{isExporting ? 'Exporting...' : 'Export to PDF'}</span>
+          <span className="text-sm font-medium">{isExporting ? 'Downloading...' : 'Download Report'}</span>
         </button>
       </div>
 
