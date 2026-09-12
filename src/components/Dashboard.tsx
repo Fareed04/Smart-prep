@@ -344,7 +344,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
       )}
 
       {/* Gamified Progress row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* XP Progress */}
         {userProfile && (
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
@@ -470,7 +470,129 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         )}
       </div>
 
-      {/* Study Roadmap Component */}
+      {/* Daily Goal and Recent Activity row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Goal */}
+        {userProfile && (
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[300px]">
+            <div className="space-y-4 w-full max-w-sm text-center">
+              <div className="flex items-center justify-center space-x-2">
+                <Target className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Daily Goal Progress</h2>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400">Answer {dailyGoal} questions</p>
+              
+              <div className="flex justify-center mt-6">
+                <div className="relative w-40 h-40">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="40" 
+                      className="stroke-slate-100 dark:stroke-slate-800" 
+                      strokeWidth="8" 
+                      fill="none" 
+                    />
+                    <motion.circle 
+                      cx="50" 
+                      cy="50" 
+                      r="40" 
+                      className="stroke-emerald-500" 
+                      strokeWidth="8" 
+                      fill="none" 
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40}`}
+                      animate={{ strokeDashoffset: 2 * Math.PI * 40 * (1 - goalProgress / 100) }}
+                      transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {goalProgress >= 100 ? (
+                      <motion.div 
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 1.5, type: 'spring' }}
+                        className="text-emerald-500"
+                      >
+                        <Trophy className="w-10 h-10 fill-current" />
+                      </motion.div>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{questionsAnsweredToday}</span>
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">/ {dailyGoal}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Recent Activity */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col max-h-[400px]">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0 rounded-t-3xl">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
+              <History className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              <span>Recent Activity</span>
+            </h2>
+          </div>
+          
+          <div className="overflow-y-auto flex-1 p-2">
+            {loading ? (
+              <div className="p-12 text-center text-slate-500 dark:text-slate-400">Loading activity...</div>
+            ) : sessions.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full mb-2">
+                  <History className="w-8 h-8" />
+                </div>
+                <p className="text-lg font-medium text-slate-900 dark:text-white">No activity yet</p>
+                <p className="text-slate-500 dark:text-slate-400">Start a new simulation to see your progress here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {sessions.map((session) => (
+                  <button 
+                    key={session.id} 
+                    onClick={() => onViewReport(session)}
+                    className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-between group rounded-xl"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {format(session.createdAt, 'MMM d')}
+                        </span>
+                        {session.company && (
+                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                            {session.company}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[150px] sm:max-w-[200px]">
+                        {session.categoriesAttempted.join(', ')}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          {session.score}%
+                        </div>
+                      </div>
+                      <div className="text-slate-400 group-hover:text-blue-600 transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       <StudyRoadmap
         pool={pool}
         progress={progress}
@@ -605,73 +727,6 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         </div>
       )}
 
-      {/* Progress Report / History */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
-            <Clock className="w-6 h-6 text-slate-600 dark:text-slate-400" />
-            <span>Progress Report</span>
-          </h2>
-        </div>
-        
-        {loading ? (
-          <div className="p-12 text-center text-slate-500 dark:text-slate-400">Loading history...</div>
-        ) : sessions.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full mb-2">
-              <History className="w-8 h-8" />
-            </div>
-            <p className="text-lg font-medium text-slate-900 dark:text-white">No simulations yet</p>
-            <p className="text-slate-500 dark:text-slate-400">Start a new simulation to see your progress here.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {sessions.map((session) => (
-              <button 
-                key={session.id} 
-                onClick={() => onViewReport(session)}
-                className="w-full text-left p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 group"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {format(session.createdAt, 'MMM d, yyyy • h:mm a')}
-                    </span>
-                    {session.company && (
-                      <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-md uppercase tracking-wider">
-                        {session.company}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
-                    {session.categoriesAttempted.map(cat => (
-                      <span key={cat} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md">{cat}</span>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-8">
-                  <div className="text-center">
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Time</div>
-                    <div className="font-medium text-slate-900 dark:text-white">{Math.floor(session.timeTaken / 60)}m {session.timeTaken % 60}s</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Score</div>
-                    <div className={`text-xl font-bold ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {session.score}%
-                    </div>
-                  </div>
-                  <div className="text-slate-400 group-hover:text-blue-600 transition-colors hidden md:block">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
