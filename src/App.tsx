@@ -744,7 +744,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-200">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => user && setAppState('dashboard')}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
@@ -818,7 +818,7 @@ export default function App() {
 
       {batteryLevel !== null && batteryLevel < 0.10 && !isCharging && !dismissedBatteryWarning && (
         <div className="bg-red-50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800/50 p-4">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between">
             <div className="flex items-start sm:items-center space-x-3">
               <BatteryWarning className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 sm:mt-0 flex-shrink-0" />
               <div className="text-sm text-red-800 dark:text-red-200">
