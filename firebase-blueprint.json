@@ -10,7 +10,9 @@
         "level": { "type": "number" },
         "streak": { "type": "number" },
         "lastActive": { "type": "string", "format": "date-time" },
-        "achievements": { "type": "array", "items": { "type": "string" } }
+        "achievements": { "type": "array", "items": { "type": "string" } },
+        "customCompanies": { "type": "array", "items": { "type": "string" } },
+        "dailyGoal": { "type": "number" }
       },
       "required": ["uid", "xp", "level", "streak", "lastActive", "achievements"]
     },
@@ -46,6 +48,10 @@
           },
           "description": "List of categories attempted in the quiz."
         },
+        "company": {
+          "type": "string",
+          "description": "Target company or category name."
+        },
         "questions": {
           "type": "string",
           "description": "JSON stringified array of questions"
@@ -53,6 +59,18 @@
         "answers": {
           "type": "string",
           "description": "JSON stringified record of answers"
+        },
+        "isPracticeMode": {
+          "type": "boolean",
+          "description": "Whether the session was taken in practice mode"
+        },
+        "isMockAssessment": {
+          "type": "boolean",
+          "description": "Whether the session was a full mock assessment"
+        },
+        "isAdaptive": {
+          "type": "boolean",
+          "description": "Whether the session used adaptive difficulty"
         },
         "createdAt": {
           "type": "string",
@@ -74,9 +92,42 @@
         "progress": {
           "type": "string",
           "description": "JSON stringified record of questionId -> QuestionProgress"
+        },
+        "activeSession": {
+          "type": "string",
+          "description": "JSON stringified active session state"
         }
       },
       "required": ["pool"]
+    },
+    "StudyGuide": {
+      "title": "StudyGuide",
+      "description": "Stores generated study guides for users.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The user ID who owns the study guide."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the study guide."
+        },
+        "category": {
+          "type": "string",
+          "description": "Assessment category."
+        },
+        "content": {
+          "type": "string",
+          "description": "Markdown content of the study guide."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when created."
+        }
+      },
+      "required": ["userId", "title", "category", "content", "createdAt"]
     }
   },
   "firestore": {
@@ -97,6 +148,12 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "User profile data including XP, level, and streak."
+    },
+    "/studyGuides/{guideId}": {
+      "schema": {
+        "$ref": "#/entities/StudyGuide"
+      },
+      "description": "Collection of study guides."
     }
   }
 }

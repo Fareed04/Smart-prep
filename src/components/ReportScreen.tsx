@@ -61,9 +61,11 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           answers: JSON.stringify(state.answers),
           isPracticeMode: state.isPracticeMode || false,
           isMockAssessment: !state.isPracticeMode && state.questions.length >= 10,
+          isAdaptive: !!state.isAdaptive,
           createdAt: serverTimestamp()
         });
         setIsSaved(true);
+        setSaveError(null);
       } catch (error) {
         console.error("Error saving quiz session:", error);
         saveInProgress.current = false;
@@ -76,7 +78,41 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
     };
 
     saveSession();
-  }, [score, correctAnswers, totalQuestions, timeTaken, state.questions, isSaved, isViewingPastReport, company]);
+  }, [score, correctAnswers, totalQuestions, timeTaken, state.questions, isSaved, isViewingPastReport, company, state.isPracticeMode, state.isAdaptive, state.answers]);
+
+  const handleRetrySave = async () => {
+    if (!auth.currentUser || isSaved || isViewingPastReport || saveInProgress.current) return;
+    saveInProgress.current = true;
+    setSaveError(null);
+    try {
+      const categories = Array.from(new Set(state.questions.map(q => q.category)));
+      await addDoc(collection(db, 'quizSessions'), {
+        userId: auth.currentUser.uid,
+        score,
+        correctAnswers,
+        totalQuestions,
+        timeTaken,
+        categoriesAttempted: categories,
+        company: company || 'All',
+        questions: JSON.stringify(state.questions),
+        answers: JSON.stringify(state.answers),
+        isPracticeMode: state.isPracticeMode || false,
+        isMockAssessment: !state.isPracticeMode && state.questions.length >= 10,
+        isAdaptive: !!state.isAdaptive,
+        createdAt: serverTimestamp()
+      });
+      setIsSaved(true);
+      setSaveError(null);
+    } catch (error) {
+      console.error("Error saving quiz session on retry:", error);
+      saveInProgress.current = false;
+      try {
+        handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
+      } catch (e: any) {
+        setSaveError(e.message);
+      }
+    }
+  };
 
   const exportToPDF = async () => {
     if (!reportRef.current) return;
@@ -221,9 +257,17 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         </div>
 
         {saveError && (
-          <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 p-4 rounded-xl flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p>Warning: {saveError} (Your results are shown below but might not be saved to your history).</p>
+          <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 p-4 rounded-xl flex items-center justify-between gap-3">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p className="text-sm">Warning: {saveError} (Your results are shown below but could not be auto-saved).</p>
+            </div>
+            <button
+              onClick={handleRetrySave}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors"
+            >
+              Retry Save
+            </button>
           </div>
         )}
 
