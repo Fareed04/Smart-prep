@@ -199,12 +199,14 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
     { id: 'master5', title: 'Rising Star', icon: '⭐', active: masteredCount >= 5, desc: 'Master 5 questions' },
   ];
 
+  const userDisplayName = auth.currentUser?.displayName || (auth.currentUser?.email ? auth.currentUser.email.split('@')[0] : '');
+
   return (
     <div className="max-w-[1600px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-            Welcome back{false ? `, ${false}` : ''}
+            Welcome back{userDisplayName ? `, ${userDisplayName}` : ''}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Ready to continue your preparation?</p>
         </div>
@@ -232,6 +234,14 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
               </div>
             </div>
           )}
+
+          <button
+            onClick={onQuickStart}
+            className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-5 py-3 rounded-2xl font-bold transition-all border border-slate-200 dark:border-slate-700"
+          >
+            <Zap className="w-5 h-5 text-amber-500 fill-current" />
+            <span>Quick 15 Qs</span>
+          </button>
           
           <button
             onClick={onStartNew}
@@ -269,12 +279,11 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         </div>
       )}
 
-      {/* BENTO GRID LAYOUT */}
+      {/* BALANCED BENTO GRID: Rows designed to avoid dangling columns or bottom void */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
         
-        {/* LEFT COLUMN: Main Content */}
-        <div className="xl:col-span-8 space-y-6 lg:space-y-8 flex flex-col">
-          
+        {/* ROW 1: Hero Roadmap (8 cols) & Daily Goal + Progression (4 cols) */}
+        <div className="xl:col-span-8 flex flex-col justify-between">
           <StudyRoadmap
             pool={pool}
             progress={progress}
@@ -283,171 +292,20 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
             onPracticeCategory={onPracticeCategory}
             onOpenStudyHub={onOpenStudyHub}
           />
-          
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-4 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-2xl">
-                <TrendingUp className="w-8 h-8" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white">{averageScore}%</div>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
-                <BookOpen className="w-8 h-8" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pool Size</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white">{totalPoolSize}</div>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-4 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl">
-                <Target className="w-8 h-8" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Answers</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white">{totalQuestionsAnswered}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Performance Chart */}
-          {sessions.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden p-6 space-y-6">
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Performance Trend (Last 10)</h2>
-              </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#64748b" opacity={0.2} vertical={false} />
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      itemStyle={{ color: '#60a5fa', fontWeight: 'bold' }}
-                    />
-                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#ffffff' }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          {/* Achievements / Badges */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center space-x-2">
-              <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              <span>Professional Badges</span>
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 h-[calc(100%-3rem)] auto-rows-max">
-              {badges.map((badge) => (
-                <div 
-                  key={badge.id}
-                  className={`p-4 rounded-2xl border ${
-                    badge.active 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50' 
-                      : 'bg-slate-50 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 grayscale opacity-60'
-                  } flex flex-col items-center justify-center text-center transition-all`}
-                >
-                  <div className="text-3xl mb-2">{badge.icon}</div>
-                  <div className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-1">{badge.title}</div>
-                  <div className="text-[9px] text-slate-500 line-clamp-1">{badge.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* RIGHT COLUMN: Side Panel */}
-        <div className="xl:col-span-4 space-y-6 lg:space-y-8 flex flex-col">
-          
-          {/* XP Progress */}
+        <div className="xl:col-span-4 space-y-6 flex flex-col justify-between">
+          {/* Daily Goal Card */}
           {userProfile && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                    <Zap className="w-6 h-6 fill-current" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Experience Points</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Level up at {((Math.floor(userProfile.xp / 1000) + 1) * 1000)} XP</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userProfile.xp.toLocaleString()}</div>
-                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total XP</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${xpProgress}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-blue-600"
-                  />
-                </div>
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>{userProfile.xp % 1000} / 1000 XP for Level {userProfile.level + 1}</span>
-                  <span>{Math.round(xpProgress)}%</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mastery Progress */}
-          {totalPoolSize > 0 && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
-                    <Star className="w-6 h-6 fill-current" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mastery Progress</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{masteredCount} of {totalPoolSize} mastered</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{masteryPercentage}%</div>
-                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mastery</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${masteryPercentage}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-amber-500"
-                  />
-                </div>
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>{attemptedCount} questions attempted</span>
-                  <span>{masteredCount} mastered</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Daily Goal */}
-          {userProfile && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[300px]">
-              <div className="space-y-4 w-full max-w-sm text-center">
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
+              <div className="space-y-3 w-full max-w-sm text-center">
                 <div className="flex items-center justify-center space-x-2">
-                  <Target className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Daily Goal Progress</h2>
+                  <Target className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Daily Target</h2>
                 </div>
-                <p className="text-slate-500 dark:text-slate-400">Answer {dailyGoal} questions</p>
-                <div className="flex justify-center mt-6">
-                  <div className="relative w-40 h-40">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Target: {dailyGoal} questions today</p>
+                <div className="flex justify-center my-3">
+                  <div className="relative w-32 h-32">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                       <circle 
                         cx="50" 
@@ -477,124 +335,345 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 1.5, type: 'spring' }}
-                          className="text-emerald-500"
+                          className="text-emerald-500 text-center"
                         >
-                          <Trophy className="w-10 h-10 fill-current" />
+                          <Trophy className="w-8 h-8 fill-current mx-auto" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider block mt-1">Goal Met!</span>
                         </motion.div>
                       ) : (
                         <>
-                          <span className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{questionsAnsweredToday}</span>
-                          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">/ {dailyGoal}</span>
+                          <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{questionsAnsweredToday}</span>
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">/ {dailyGoal}</span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {goalProgress >= 100 ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Outstanding! Daily objective achieved.</span>
+                  ) : (
+                    <span>{dailyGoal - questionsAnsweredToday} more to reach your target!</span>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
-          {/* Recent Activity */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col max-h-[400px]">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0 rounded-t-3xl">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center space-x-2">
-                <History className="w-6 h-6 text-slate-600 dark:text-slate-400" />
-                <span>Recent Activity</span>
-              </h2>
-            </div>
-            <div className="overflow-y-auto flex-1 p-2">
-              {loading ? (
-                <div className="p-12 text-center text-slate-500 dark:text-slate-400">Loading activity...</div>
-              ) : sessions.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full mb-2">
-                    <History className="w-8 h-8" />
+          {/* Unified Level XP & Pool Mastery Progression Card */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+            {/* Level XP */}
+            {userProfile && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                      <Zap className="w-4 h-4 fill-current" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Level {userProfile.level} Progression</div>
+                      <div className="text-[10px] text-slate-500">{userProfile.xp % 1000} / 1000 XP</div>
+                    </div>
                   </div>
-                  <p className="text-lg font-medium text-slate-900 dark:text-white">No activity yet</p>
-                  <p className="text-slate-500 dark:text-slate-400">Start a new simulation to see your progress here.</p>
+                  <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{Math.round(xpProgress)}%</div>
                 </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${xpProgress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-blue-600 rounded-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Pool Mastery */}
+            {totalPoolSize > 0 && (
+              <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                      <Star className="w-4 h-4 fill-current" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Question Bank Mastery</div>
+                      <div className="text-[10px] text-slate-500">{masteredCount} of {totalPoolSize} mastered</div>
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-amber-600 dark:text-amber-400">{masteryPercentage}%</div>
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${masteryPercentage}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-amber-500 rounded-full"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ROW 2: Stats & Performance Trends (8 cols) & Monthly Streak Calendar (4 cols) */}
+        <div className="xl:col-span-8 space-y-6 flex flex-col justify-between">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
+              <div className="p-3.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-2xl shrink-0">
+                <TrendingUp className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</div>
+                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{averageScore}%</div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
+              <div className="p-3.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl shrink-0">
+                <BookOpen className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pool Size</div>
+                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{totalPoolSize}</div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
+              <div className="p-3.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl shrink-0">
+                <Target className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Answers</div>
+                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{totalQuestionsAnswered}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Chart */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden p-6 space-y-4 flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Performance Trend (Last 10)</h2>
+              </div>
+              {sessions.length > 0 && (
+                <span className="text-xs text-slate-500">Latest: {sessions[0].score}%</span>
+              )}
+            </div>
+            <div className="h-60 w-full">
+              {sessions.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#64748b" opacity={0.2} vertical={false} />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dy={10} />
+                    <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ color: '#60a5fa', fontWeight: 'bold' }}
+                    />
+                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#ffffff' }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {sessions.map((session) => (
-                    <button 
-                      key={session.id} 
-                      onClick={() => onViewReport(session)}
-                      className="w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-between group rounded-xl"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                            {format(session.createdAt, 'MMM d')}
-                          </span>
-                          {session.company && (
-                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">
-                              {session.company}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[150px] sm:max-w-[200px]">
-                          {session.categoriesAttempted.join(', ')}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-center">
-                          <div className={`text-lg font-bold ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                            {session.score}%
-                          </div>
-                        </div>
-                        <div className="text-slate-400 group-hover:text-blue-600 transition-colors">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                <div className="h-full flex items-center justify-center text-sm text-slate-400">
+                  Complete your first assessment to view performance trends
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Streak Calendar */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                <span>{format(today, 'MMMM yyyy')}</span>
-              </h2>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center mb-2">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                <div key={i} className="text-xs font-bold text-slate-400">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-sm flex-1">
-              {emptyDays.map(i => (
-                <div key={`empty-${i}`} className="p-1" />
-              ))}
-              {monthDays.map(day => {
-                const active = isDayInStreak(day);
-                const todayMark = isToday(day);
-                return (
-                  <div 
-                    key={format(day, 'yyyy-MM-dd')}
-                    className="aspect-square flex items-center justify-center p-0.5"
-                  >
-                    <div className={`w-full h-full rounded-full flex items-center justify-center font-medium ${
-                      active 
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 ring-2 ring-amber-400 dark:ring-amber-500/50' 
-                        : todayMark
-                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold border-2 border-blue-200 dark:border-blue-800'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}>
-                      {format(day, 'd')}
-                    </div>
+        {/* Streak Calendar in Row 2 (Right side) */}
+        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+              <span>{format(today, 'MMMM yyyy')}</span>
+            </h2>
+            {userProfile && userProfile.streak > 0 && (
+              <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-full">
+                {userProfile.streak}d Streak
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <div key={i} className="text-xs font-bold text-slate-400">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5 text-sm flex-1">
+            {emptyDays.map(i => (
+              <div key={`empty-${i}`} className="p-1" />
+            ))}
+            {monthDays.map(day => {
+              const active = isDayInStreak(day);
+              const todayMark = isToday(day);
+              return (
+                <div 
+                  key={format(day, 'yyyy-MM-dd')}
+                  className="aspect-square flex items-center justify-center p-0.5"
+                >
+                  <div className={`w-full h-full rounded-xl flex items-center justify-center text-xs font-semibold transition-all ${
+                    active 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 ring-2 ring-amber-400 dark:ring-amber-500' 
+                      : todayMark
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold border-2 border-blue-400 dark:border-blue-600'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}>
+                    {format(day, 'd')}
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              Practice Active
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border border-blue-500 inline-block" />
+              Today
+            </span>
+          </div>
+        </div>
+
+        {/* ROW 3: Recent Activity (7 cols) & Professional Badges (5 cols) - BALANCED BOTTOM! */}
+        <div className="xl:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[420px] overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <History className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Simulation History</h2>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">
+              {sessions.length} {sessions.length === 1 ? 'Record' : 'Records'}
+            </span>
+          </div>
+
+          <div className="overflow-y-auto flex-1 p-3 sm:p-4">
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-slate-500 text-sm">Loading activity...</div>
+            ) : sessions.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
+                <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-2xl flex items-center justify-center">
+                  <History className="w-7 h-7" />
+                </div>
+                <h3 className="font-bold text-slate-900 dark:text-white">No Simulation History Yet</h3>
+                <p className="text-xs text-slate-500 max-w-sm">Take your first 15-minute mock assessment or category practice to track your progress.</p>
+                <button
+                  onClick={onStartNew}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
+                >
+                  Start First Simulation
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sessions.map((session) => (
+                  <button 
+                    key={session.id} 
+                    onClick={() => onViewReport(session)}
+                    className="w-full text-left p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700 rounded-2xl transition-all flex items-center justify-between group"
+                  >
+                    <div className="space-y-1.5 flex-1 pr-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {format(session.createdAt, 'MMM d, yyyy')}
+                        </span>
+                        {session.company && (
+                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                            {session.company}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-400">
+                          {Math.floor(session.timeTaken / 60)}m {session.timeTaken % 60}s
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                        {session.categoriesAttempted.join(' · ')}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 shrink-0">
+                      <div className="text-right">
+                        <div className={`text-base font-black ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          {session.score}%
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          {session.correctAnswers}/{session.totalQuestions}
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-1 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-600 group-hover:text-white dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                        <span>Review</span>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Professional Badges in Row 3 (5 cols) - MATCHING HEIGHT! */}
+        <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[420px] overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Achievements & Badges</h2>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+              {badges.filter(b => b.active).length} / {badges.length} Unlocked
+            </span>
+          </div>
+
+          <div className="p-4 overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-3">
+              {badges.map((badge) => (
+                <div 
+                  key={badge.id}
+                  className={`p-3.5 rounded-2xl border ${
+                    badge.active 
+                      ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50 shadow-sm' 
+                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 grayscale opacity-60'
+                  } flex items-center space-x-3 transition-all`}
+                >
+                  <div className="text-2xl shrink-0 p-1 bg-white dark:bg-slate-800 rounded-xl shadow-xs">{badge.icon}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{badge.title}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{badge.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          
+        </div>
+
+      </div>
+
+      {/* ROW 4: Grounding Quick Action Bar at the Bottom */}
+      <div className="bg-slate-900 dark:bg-slate-800 text-white p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-1 text-center md:text-left">
+          <h3 className="text-lg font-bold">Sharpen Specific Assessment Domains</h3>
+          <p className="text-xs text-slate-400">Launch a targeted rapid-fire module or explore deep AI study guides.</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
+          {['Numerical Reasoning', 'Verbal Reasoning', 'Logical Reasoning', 'Situational Judgement'].map((category) => (
+            <button
+              key={category}
+              onClick={() => onPracticeCategory?.(category)}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 border border-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors"
+            >
+              {category}
+            </button>
+          ))}
+          <button
+            onClick={onOpenStudyHub}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm ml-1"
+          >
+            Study Guides →
+          </button>
         </div>
       </div>
     </div>

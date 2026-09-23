@@ -978,6 +978,43 @@ export default function App() {
           />
         )}
       </main>
+
+      {appState !== 'quiz' && appState !== 'login' && (
+        <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 transition-colors duration-200">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Smart-Prep Aptitude Suite</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {isOnline ? 'Cloud Synced' : 'Offline Mode'}
+              </span>
+              <span className="hidden sm:inline">·</span>
+              <span>Graduate & Executive Trainee Assessments</span>
+            </div>
+            <div className="flex items-center space-x-6">
+              <button 
+                onClick={() => setAppState('study')} 
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+              >
+                Study Guides
+              </button>
+              <button 
+                onClick={() => setAppState('dashboard')} 
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+              >
+                Dashboard
+              </button>
+              <button 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium text-slate-700 dark:text-slate-300"
+              >
+                Back to Top ↑
+              </button>
+            </div>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
