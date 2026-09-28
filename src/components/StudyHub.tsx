@@ -315,11 +315,17 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
     setIsGeneratingCheck(true);
     setCheckAnswers({});
     setShowCheckResults(false);
+    setError(null);
     try {
       const q = await generateKnowledgeCheck(viewingGuide.content);
-      setCheckQuestions(q);
+      if (q && q.length > 0) {
+        setCheckQuestions(q);
+      } else {
+        setError("Unable to generate questions from this guide. Please try again.");
+      }
     } catch (e: any) {
-      setError(e.message);
+      console.error("Knowledge check error:", e);
+      setError(e.message || "Failed to generate knowledge check.");
     } finally {
       setIsGeneratingCheck(false);
     }
@@ -332,12 +338,25 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
           onClick={() => {
             setViewingGuide(null);
             setActiveSection(0);
+            setError(null);
           }}
           className="flex items-center space-x-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           <span>Back to Library</span>
         </button>
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-start justify-between">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 dark:hover:text-red-300">
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
           {/* Sidebar TOC */}

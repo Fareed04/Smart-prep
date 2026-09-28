@@ -27,6 +27,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
   const [loading, setLoading] = useState(true);
   const [isFetchingTips, setIsFetchingTips] = useState(false);
   const [studyTips, setStudyTips] = useState<string | null>(null);
+  const [activityTab, setActivityTab] = useState<'history' | 'badges'>('history');
 
   const fetchStudyTips = async () => {
     setIsFetchingTips(true);
@@ -202,7 +203,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
   const userDisplayName = auth.currentUser?.displayName || (auth.currentUser?.email ? auth.currentUser.email.split('@')[0] : '');
 
   return (
-    <div className="max-w-[1600px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-4 space-y-4 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -417,40 +418,40 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         </div>
 
         {/* ROW 2: Stats & Performance Trends (8 cols) & Monthly Streak Calendar (4 cols) */}
-        <div className="xl:col-span-8 space-y-6 flex flex-col justify-between">
+        <div className="xl:col-span-8 space-y-4 flex flex-col justify-between">
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
-            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-3.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-2xl shrink-0">
-                <TrendingUp className="w-7 h-7" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
+              <div className="p-2.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl shrink-0">
+                <TrendingUp className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Score</div>
-                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{averageScore}%</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Score</div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{averageScore}%</div>
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-3.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl shrink-0">
-                <BookOpen className="w-7 h-7" />
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
+              <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl shrink-0">
+                <BookOpen className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pool Size</div>
-                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{totalPoolSize}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pool Size</div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{totalPoolSize}</div>
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center space-x-4">
-              <div className="p-3.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl shrink-0">
-                <Target className="w-7 h-7" />
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
+              <div className="p-2.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl shrink-0">
+                <Target className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Answers</div>
-                <div className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">{totalQuestionsAnswered}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Answers</div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{totalQuestionsAnswered}</div>
               </div>
             </div>
           </div>
 
           {/* Performance Chart */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden p-6 space-y-4 flex-1 flex flex-col justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden p-4 sm:p-5 space-y-3 flex-1 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -460,7 +461,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
                 <span className="text-xs text-slate-500">Latest: {sessions[0].score}%</span>
               )}
             </div>
-            <div className="h-60 w-full">
+            <div className="h-48 sm:h-52 w-full">
               {sessions.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
@@ -484,26 +485,26 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         </div>
 
         {/* Streak Calendar in Row 2 (Right side) */}
-        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               <span>{format(today, 'MMMM yyyy')}</span>
             </h2>
             {userProfile && userProfile.streak > 0 && (
-              <span className="px-2.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-full">
+              <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-full">
                 {userProfile.streak}d Streak
               </span>
             )}
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+          <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="text-xs font-bold text-slate-400">{d}</div>
+              <div key={i} className="text-[10px] font-bold text-slate-400">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1.5 text-sm flex-1">
+          <div className="grid grid-cols-7 gap-1 text-sm flex-1">
             {emptyDays.map(i => (
-              <div key={`empty-${i}`} className="p-1" />
+              <div key={`empty-${i}`} className="p-0.5" />
             ))}
             {monthDays.map(day => {
               const active = isDayInStreak(day);
@@ -513,11 +514,11 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
                   key={format(day, 'yyyy-MM-dd')}
                   className="aspect-square flex items-center justify-center p-0.5"
                 >
-                  <div className={`w-full h-full rounded-xl flex items-center justify-center text-xs font-semibold transition-all ${
+                  <div className={`w-full h-full rounded-lg flex items-center justify-center text-xs font-semibold transition-all ${
                     active 
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 ring-2 ring-amber-400 dark:ring-amber-500' 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 ring-1 ring-amber-400 dark:ring-amber-500' 
                       : todayMark
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold border-2 border-blue-400 dark:border-blue-600'
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold border border-blue-400 dark:border-blue-600'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}>
                     {format(day, 'd')}
@@ -526,62 +527,62 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
               );
             })}
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
               Practice Active
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-blue-500 inline-block" />
+              <span className="w-2 h-2 rounded-full border border-blue-500 inline-block" />
               Today
             </span>
           </div>
         </div>
 
-        {/* ROW 3: Recent Activity (7 cols) & Professional Badges (5 cols) - BALANCED BOTTOM! */}
-        <div className="xl:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[420px] overflow-hidden">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
+        {/* ROW 3: Recent Activity (7 cols) & Professional Badges (5 cols) - COMPACT & BALANCED */}
+        <div className="xl:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col h-[300px] overflow-hidden">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <History className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Simulation History</h2>
+              <History className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Recent Simulation History</h2>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">
+            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">
               {sessions.length} {sessions.length === 1 ? 'Record' : 'Records'}
             </span>
           </div>
 
-          <div className="overflow-y-auto flex-1 p-3 sm:p-4">
+          <div className="overflow-y-auto flex-1 p-2.5 sm:p-3">
             {loading ? (
-              <div className="h-full flex items-center justify-center text-slate-500 text-sm">Loading activity...</div>
+              <div className="h-full flex items-center justify-center text-slate-500 text-xs">Loading activity...</div>
             ) : sessions.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
-                <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-2xl flex items-center justify-center">
-                  <History className="w-7 h-7" />
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2">
+                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center">
+                  <History className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-white">No Simulation History Yet</h3>
-                <p className="text-xs text-slate-500 max-w-sm">Take your first 15-minute mock assessment or category practice to track your progress.</p>
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">No Simulation History Yet</h3>
+                <p className="text-[11px] text-slate-500 max-w-xs">Take your first 15-minute mock assessment or category practice to track your progress.</p>
                 <button
                   onClick={onStartNew}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
                 >
                   Start First Simulation
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {sessions.map((session) => (
                   <button 
                     key={session.id} 
                     onClick={() => onViewReport(session)}
-                    className="w-full text-left p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700 rounded-2xl transition-all flex items-center justify-between group"
+                    className="w-full text-left p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700 rounded-xl transition-all flex items-center justify-between group"
                   >
-                    <div className="space-y-1.5 flex-1 pr-4">
+                    <div className="space-y-1 flex-1 pr-3 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <span className="font-semibold text-xs text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {format(session.createdAt, 'MMM d, yyyy')}
                         </span>
                         {session.company && (
-                          <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider">
+                          <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">
                             {session.company}
                           </span>
                         )}
@@ -589,22 +590,22 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
                           {Math.floor(session.timeTaken / 60)}m {session.timeTaken % 60}s
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 truncate">
                         {session.categoriesAttempted.join(' · ')}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4 shrink-0">
+                    <div className="flex items-center space-x-3 shrink-0">
                       <div className="text-right">
-                        <div className={`text-base font-black ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        <div className={`text-sm font-black ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
                           {session.score}%
                         </div>
                         <div className="text-[10px] text-slate-400 font-medium">
                           {session.correctAnswers}/{session.totalQuestions}
                         </div>
                       </div>
-                      <div className="px-2.5 py-1 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-600 group-hover:text-white dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                      <div className="px-2 py-1 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-600 group-hover:text-white dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
                         <span>Review</span>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -617,29 +618,29 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
         </div>
 
         {/* Professional Badges in Row 3 (5 cols) - MATCHING HEIGHT! */}
-        <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[420px] overflow-hidden">
-          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
+        <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col h-[300px] overflow-hidden">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Achievements & Badges</h2>
+              <Award className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Achievements & Badges</h2>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+            <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
               {badges.filter(b => b.active).length} / {badges.length} Unlocked
             </span>
           </div>
 
-          <div className="p-4 overflow-y-auto flex-1">
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-3">
+          <div className="p-3 overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2">
               {badges.map((badge) => (
                 <div 
                   key={badge.id}
-                  className={`p-3.5 rounded-2xl border ${
+                  className={`p-2.5 rounded-xl border ${
                     badge.active 
-                      ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50 shadow-sm' 
-                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 grayscale opacity-60'
-                  } flex items-center space-x-3 transition-all`}
+                      ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50 shadow-xs' 
+                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 grayscale opacity-50'
+                  } flex items-center space-x-2.5 transition-all`}
                 >
-                  <div className="text-2xl shrink-0 p-1 bg-white dark:bg-slate-800 rounded-xl shadow-xs">{badge.icon}</div>
+                  <div className="text-xl shrink-0 p-1 bg-white dark:bg-slate-800 rounded-lg shadow-xs">{badge.icon}</div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{badge.title}</div>
                     <div className="text-[10px] text-slate-500 truncate">{badge.desc}</div>
@@ -650,31 +651,6 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
           </div>
         </div>
 
-      </div>
-
-      {/* ROW 4: Grounding Quick Action Bar at the Bottom */}
-      <div className="bg-slate-900 dark:bg-slate-800 text-white p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-1 text-center md:text-left">
-          <h3 className="text-lg font-bold">Sharpen Specific Assessment Domains</h3>
-          <p className="text-xs text-slate-400">Launch a targeted rapid-fire module or explore deep AI study guides.</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2.5">
-          {['Numerical Reasoning', 'Verbal Reasoning', 'Logical Reasoning', 'Situational Judgement'].map((category) => (
-            <button
-              key={category}
-              onClick={() => onPracticeCategory?.(category)}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 border border-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors"
-            >
-              {category}
-            </button>
-          ))}
-          <button
-            onClick={onOpenStudyHub}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm ml-1"
-          >
-            Study Guides →
-          </button>
-        </div>
       </div>
     </div>
   );

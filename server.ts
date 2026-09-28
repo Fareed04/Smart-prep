@@ -7,10 +7,14 @@ let aiClient: GoogleGenAI | null = null;
 function getAIClient() {
   if (!aiClient) {
     const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is required");
-    }
-    aiClient = new GoogleGenAI({ apiKey: key });
+    aiClient = new GoogleGenAI({
+      apiKey: key || undefined,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   }
   return aiClient;
 }
@@ -34,12 +38,23 @@ Recent Sessions: ${JSON.stringify(sessions)}
 Provide tailored advice:`;
 
       const ai = getAIClient();
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
+      let responseText = "";
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: prompt,
+        });
+        responseText = response.text || "";
+      } catch (firstErr) {
+        console.warn("Retrying with gemini-flash-latest...", firstErr);
+        const response = await ai.models.generateContent({
+          model: "gemini-flash-latest",
+          contents: prompt,
+        });
+        responseText = response.text || "";
+      }
 
-      res.json({ tips: response.text });
+      res.json({ tips: responseText });
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ error: "Failed to generate tips." });

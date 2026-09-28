@@ -500,16 +500,24 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
         <button
           onClick={onDashboard}
-          className="flex items-center justify-center space-x-2 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs"
         >
           <span>Back to Dashboard</span>
         </button>
         <button
+          onClick={exportToPDF}
+          disabled={isExporting}
+          className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-sm disabled:opacity-50"
+        >
+          <Download className="w-5 h-5" />
+          <span>{isExporting ? 'Generating PDF...' : 'Download Report (PDF)'}</span>
+        </button>
+        <button
           onClick={onRestart}
-          className="flex items-center justify-center space-x-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm"
         >
           <RotateCcw className="w-5 h-5" />
           <span>Start New Simulation</span>
