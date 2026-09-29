@@ -172,7 +172,7 @@ export function Calculator() {
       </div>
       
       <div className="p-4 space-y-4">
-        <div ref={displayRef} className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-right space-y-2 flex flex-col h-40 overflow-y-auto overflow-x-hidden">
+        <div ref={displayRef} className="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl text-right space-y-2 flex flex-col h-40 overflow-y-auto overflow-x-hidden overscroll-contain-y gpu-scroll" data-lenis-prevent>
           {history.map((item, idx) => (
             <div key={idx} className="flex flex-col text-sm text-slate-500 dark:text-slate-400">
               <span className="text-xs opacity-75">{item.eq}</span>

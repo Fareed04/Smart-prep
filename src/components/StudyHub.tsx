@@ -39,6 +39,17 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
 
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const contentPaneRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToContentTop = React.useCallback(() => {
+    if (contentPaneRef.current) {
+      contentPaneRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if ((window as any).__lenis) {
+      (window as any).__lenis.scrollTo(0, { duration: 0.8 });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
   
   const flashcards = useMemo(() => {
     return [...pool].sort(() => 0.5 - Math.random());
@@ -377,7 +388,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                  {sections.map((section, idx) => (
                     <button
                        key={idx}
-                       onClick={() => setActiveSection(idx)}
+                       onClick={() => {
+                         setActiveSection(idx);
+                         scrollToContentTop();
+                       }}
                        className={cn(
                          "w-full text-left px-3 py-2.5 text-sm font-medium transition-all rounded-xl flex items-center justify-between group",
                          activeSection === idx 
@@ -491,7 +505,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                 )}
               </div>
             ) : (
-              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+              <div ref={contentPaneRef} className="bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
                 {sections[activeSection] ? (
                   <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -512,7 +526,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                 {/* Pagination Controls */}
                 <div className="mt-12 flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
                   <button
-                    onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
+                    onClick={() => {
+                      setActiveSection(Math.max(0, activeSection - 1));
+                      scrollToContentTop();
+                    }}
                     disabled={activeSection === 0}
                     className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-colors flex items-center space-x-1"
                   >
@@ -525,7 +542,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                   </div>
 
                   <button
-                    onClick={() => setActiveSection(Math.min(sections.length - 1, activeSection + 1))}
+                    onClick={() => {
+                      setActiveSection(Math.min(sections.length - 1, activeSection + 1));
+                      scrollToContentTop();
+                    }}
                     disabled={activeSection === sections.length - 1}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-30 transition-colors flex items-center space-x-1"
                   >

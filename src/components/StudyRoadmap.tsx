@@ -351,7 +351,7 @@ export function StudyRoadmap({
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1 overscroll-contain-y gpu-scroll" data-lenis-prevent>
             {categoryStats.map((item) => {
               const isSelected = selectedCategoryDetails === item.category;
 

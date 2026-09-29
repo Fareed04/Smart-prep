@@ -551,7 +551,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
             </span>
           </div>
 
-          <div className="overflow-y-auto flex-1 p-2.5 sm:p-3">
+          <div className="overflow-y-auto flex-1 p-2.5 sm:p-3 overscroll-contain-y gpu-scroll" data-lenis-prevent>
             {loading ? (
               <div className="h-full flex items-center justify-center text-slate-500 text-xs">Loading activity...</div>
             ) : sessions.length === 0 ? (
@@ -629,7 +629,7 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
             </span>
           </div>
 
-          <div className="p-3 overflow-y-auto flex-1">
+          <div className="p-3 overflow-y-auto flex-1 overscroll-contain-y gpu-scroll" data-lenis-prevent>
             <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2">
               {badges.map((badge) => (
                 <div 

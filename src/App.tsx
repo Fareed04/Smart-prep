@@ -15,6 +15,8 @@ import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase
 import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
+import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 
 type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study';
 
@@ -57,6 +59,40 @@ export default function App() {
   const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
   const [hasBatteryAutoSaved, setHasBatteryAutoSaved] = useState<boolean>(false);
   const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
+
+  // Initialize fluid inertia scrolling with Lenis
+  useEffect(() => {
+    // Respect user's system preferences for reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const lenis = new Lenis({
+      autoRaf: true,
+      duration: 1.15,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 0.95,
+      touchMultiplier: 1.1,
+    });
+
+    (window as any).__lenis = lenis;
+
+    return () => {
+      lenis.destroy();
+      delete (window as any).__lenis;
+    };
+  }, []);
+
+  // Smooth scroll to top on screen transitions
+  useEffect(() => {
+    if ((window as any).__lenis) {
+      (window as any).__lenis.scrollTo(0, { immediate: false, duration: 0.8 });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [appState]);
 
   // Trigger auto-save on critical battery level
   useEffect(() => {
@@ -1004,7 +1040,13 @@ export default function App() {
                 Dashboard
               </button>
               <button 
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+                onClick={() => {
+                  if ((window as any).__lenis) {
+                    (window as any).__lenis.scrollTo(0, { duration: 1.0 });
+                  } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }} 
                 className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium text-slate-700 dark:text-slate-300"
               >
                 Back to Top ↑

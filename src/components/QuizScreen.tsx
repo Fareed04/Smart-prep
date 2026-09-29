@@ -58,9 +58,22 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   }, [isFocusMode, isPaused, state.isFinished, isFinishing, showFocusWarning]);
 
   const stateRef = React.useRef(state);
+  const questionCardRef = React.useRef<HTMLDivElement>(null);
+  const passageRef = React.useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // Smoothly reset scroll position when moving between questions
+  useEffect(() => {
+    if (passageRef.current) {
+      passageRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (questionCardRef.current) {
+      questionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [state.currentIndex]);
 
   useEffect(() => {
     const saveProgress = async () => {
@@ -358,7 +371,10 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
       )}
 
       {/* Question Card */}
-      <div className={cn("relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col", currentQuestion.passage ? "lg:grid lg:grid-cols-2 lg:divide-x divide-slate-100 dark:divide-slate-800" : "")}>
+      <div 
+        ref={questionCardRef}
+        className={cn("relative bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-6 flex flex-col", currentQuestion.passage ? "lg:grid lg:grid-cols-2 lg:divide-x divide-slate-100 dark:divide-slate-800" : "")}
+      >
         {isPaused && (
           <div className="absolute inset-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center col-span-full">
             <Pause className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-4" />
@@ -376,7 +392,11 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
 
         {currentQuestion.passage ? (
           <>
-            <div className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 lg:max-h-[700px] lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+            <div 
+              ref={passageRef}
+              className="p-5 sm:p-8 border-b lg:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 lg:max-h-[700px] lg:overflow-y-auto overscroll-contain-y gpu-scroll"
+              data-lenis-prevent
+            >
               <div className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3 uppercase tracking-wider">Reference Passage</div>
               <div className="text-[15px] leading-relaxed text-slate-800 dark:text-slate-200 markdown-body prose prose-slate dark:prose-invert max-w-none prose-p:my-2">
                 <ReactMarkdown 
@@ -389,7 +409,10 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             </div>
 
             <div className="flex flex-col bg-white dark:bg-slate-900 lg:max-h-[700px]">
-              <div className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 shrink-0 lg:max-h-[50%]">
+              <div 
+                className="p-5 sm:p-8 border-b border-slate-100 dark:border-slate-800 lg:overflow-y-auto shrink-0 lg:max-h-[50%] overscroll-contain-y gpu-scroll"
+                data-lenis-prevent
+              >
                 <div className="text-xl sm:text-2xl font-medium text-slate-900 dark:text-white leading-relaxed prose prose-slate dark:prose-invert max-w-none prose-p:my-2 prose-table:my-4 prose-th:p-2 prose-td:p-2">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
@@ -400,7 +423,10 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
                 </div>
               </div>
               
-              <div className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 space-y-3 flex-1 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+              <div 
+                className="p-5 sm:p-8 bg-slate-50 dark:bg-slate-800/50 space-y-3 flex-1 lg:overflow-y-auto overscroll-contain-y gpu-scroll"
+                data-lenis-prevent
+              >
                 {currentQuestion.options.map((option, i) => {
                   const isSelected = selectedOption === option;
                   let optionClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300";
