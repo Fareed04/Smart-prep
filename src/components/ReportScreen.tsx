@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Clock, Share2, Copy } from 'lucide-react';
+import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Clock, Share2, Copy, ArrowLeft } from 'lucide-react';
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -220,31 +220,42 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
-          onClick={handleShare}
-          disabled={isSharing}
-          className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
+          onClick={onDashboard}
+          className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all shadow-xs group cursor-pointer"
+          aria-label="Back to Dashboard"
         >
-          {shareSuccess ? (
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
-          ) : navigator.share ? (
-            <Share2 className="w-4 h-4" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-          <span className="text-sm font-medium">
-            {shareSuccess ? 'Copied/Shared!' : isSharing ? 'Sharing...' : 'Share Score'}
-          </span>
+          <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
+          <span className="text-sm font-medium">Back to Dashboard</span>
         </button>
-        <button
-          onClick={exportToPDF}
-          disabled={isExporting}
-          className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />
-          <span className="text-sm font-medium">{isExporting ? 'Downloading...' : 'Download Report'}</span>
-        </button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleShare}
+            disabled={isSharing}
+            className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs disabled:opacity-50"
+          >
+            {shareSuccess ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            ) : navigator.share ? (
+              <Share2 className="w-4 h-4" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+            <span className="text-sm font-medium">
+              {shareSuccess ? 'Copied/Shared!' : isSharing ? 'Sharing...' : 'Share Score'}
+            </span>
+          </button>
+          <button
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            <span className="text-sm font-medium">{isExporting ? 'Downloading...' : 'Download Report'}</span>
+          </button>
+        </div>
       </div>
 
       <div ref={reportRef} className="space-y-8 bg-slate-50 dark:bg-slate-950 p-2 sm:p-4 rounded-3xl">
