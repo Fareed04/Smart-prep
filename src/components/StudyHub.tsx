@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
 import { StudyGuide, QuizSession } from '../types';
-import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy, RefreshCw, ArrowRight, ArrowLeft, Layers, Calendar as CalendarIcon, Star } from 'lucide-react';
+import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy, RefreshCw, ArrowRight, ArrowLeft, Layers, Calendar as CalendarIcon, Star, Sparkles, Type, Volume2, Maximize2, Minimize2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, subMonths, addMonths, startOfWeek, endOfWeek, isToday } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,6 +25,9 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   
   const [viewingGuide, setViewingGuide] = useState<StudyGuide | null>(null);
   const [activeSection, setActiveSection] = useState(0);
+  const [isZenReader, setIsZenReader] = useState(false);
+  const [readerFontSize, setReaderFontSize] = useState<'normal' | 'large' | 'huge'>('normal');
+  const [readerTheme, setReaderTheme] = useState<'default' | 'sepia'>('default');
   const [isCreating, setIsCreating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
@@ -344,18 +347,69 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
 
   if (viewingGuide) {
     return (
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 animate-in fade-in">
-        <button 
-          onClick={() => {
-            setViewingGuide(null);
-            setActiveSection(0);
-            setError(null);
-          }}
-          className="flex items-center space-x-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span>Back to Library</span>
-        </button>
+      <div className={cn("mx-auto p-4 sm:p-6 space-y-6 animate-in fade-in", isZenReader ? "max-w-3xl" : "max-w-7xl")}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button 
+            onClick={() => {
+              setViewingGuide(null);
+              setActiveSection(0);
+              setError(null);
+              setIsZenReader(false);
+            }}
+            className="flex items-center space-x-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span>Back to Library</span>
+          </button>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsZenReader(!isZenReader)}
+              className={cn(
+                "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border shadow-2xs",
+                isZenReader 
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/20" 
+                  : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+              )}
+              title="Toggle distraction-free Zen Reader"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{isZenReader ? 'Exit Zen Reader' : 'Zen Reader'}</span>
+            </button>
+
+            {isZenReader && (
+              <div className="flex items-center space-x-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full px-2 py-1 text-xs">
+                <button
+                  onClick={() => setReaderFontSize(f => f === 'huge' ? 'large' : 'normal')}
+                  disabled={readerFontSize === 'normal'}
+                  className="px-1.5 py-0.5 text-slate-600 dark:text-slate-400 disabled:opacity-30 hover:text-slate-900 dark:hover:text-white font-bold"
+                  title="Smaller Text"
+                >
+                  A-
+                </button>
+                <button
+                  onClick={() => setReaderFontSize(f => f === 'normal' ? 'large' : 'huge')}
+                  disabled={readerFontSize === 'huge'}
+                  className="px-1.5 py-0.5 text-slate-600 dark:text-slate-400 disabled:opacity-30 hover:text-slate-900 dark:hover:text-white font-bold"
+                  title="Larger Text"
+                >
+                  A+
+                </button>
+                <div className="w-px h-3 bg-slate-200 dark:bg-slate-700" />
+                <button
+                  onClick={() => setReaderTheme(t => t === 'default' ? 'sepia' : 'default')}
+                  className={cn(
+                    "px-2 py-0.5 rounded-full font-medium transition-colors text-[11px]",
+                    readerTheme === 'sepia' ? "bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 font-semibold" : "text-slate-600 dark:text-slate-400"
+                  )}
+                  title="Toggle Warm Sepia Theme"
+                >
+                  Sepia
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl flex items-start justify-between">
@@ -369,9 +423,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* Sidebar TOC */}
-          <div className="w-full md:w-72 shrink-0 md:sticky md:top-6 space-y-4">
+        <div className={cn("gap-6 items-start", isZenReader ? "flex flex-col w-full" : "flex flex-col md:flex-row")}>
+          {/* Sidebar TOC - hidden in Zen Reader mode */}
+          {!isZenReader && (
+            <div className="w-full md:w-72 shrink-0 md:sticky md:top-6 space-y-4">
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
                <div className="flex items-center space-x-2 mb-4">
                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-md uppercase tracking-wider">
@@ -418,9 +473,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                </div>
             </div>
           </div>
+          )}
 
           {/* Main Content */}
-          <div className="flex-1 min-w-0 space-y-6">
+          <div className={cn("min-w-0 space-y-6", isZenReader ? "w-full max-w-3xl mx-auto" : "flex-1")}>
             {checkQuestions.length > 0 ? (
               <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
                 <div className="flex items-center justify-between mb-6">
@@ -505,9 +561,29 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
                 )}
               </div>
             ) : (
-              <div ref={contentPaneRef} className="bg-white dark:bg-slate-900 p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+              <div 
+                ref={contentPaneRef} 
+                className={cn(
+                  "p-6 sm:p-8 md:p-10 rounded-3xl shadow-sm border animate-in slide-in-from-bottom-4 transition-all duration-300",
+                  readerTheme === 'sepia' 
+                    ? "bg-[#faf6ed] dark:bg-[#1a1815] text-[#3d3226] dark:text-[#ede4d8] border-[#e8dfcf] dark:border-[#332e26]" 
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                )}
+              >
+                {isZenReader && sections[activeSection] && (
+                  <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400">
+                    <span className="font-semibold text-indigo-500 uppercase tracking-wider">{viewingGuide.category}</span>
+                    <span>Section {activeSection + 1} of {sections.length}</span>
+                  </div>
+                )}
                 {sections[activeSection] ? (
-                  <div className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 markdown-body prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700">
+                  <div className={cn(
+                    "prose max-w-none markdown-body prose-headings:font-bold",
+                    readerFontSize === 'huge' ? "prose-xl" : readerFontSize === 'large' ? "prose-lg" : "prose-base",
+                    readerTheme === 'sepia' 
+                      ? "prose-headings:text-[#2d2319] dark:prose-headings:text-white prose-p:text-[#433527] dark:prose-p:text-[#ded5c8] prose-a:text-amber-700 dark:prose-a:text-amber-400 prose-pre:bg-[#f2ece0] dark:prose-pre:bg-[#25221d] prose-pre:border-[#dfd6c5] dark:prose-pre:border-[#383227]" 
+                      : "prose-slate dark:prose-invert text-slate-700 dark:text-slate-300 prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-pre:bg-slate-50 dark:prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-200 dark:prose-pre:border-slate-700"
+                  )}>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {(() => {
                         // Prepend the title as an h2 if it doesn't already start with one, just to ensure consistency

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2, Cloud, Focus } from 'lucide-react';
+import { Clock, Lightbulb, ChevronRight, ChevronLeft, CheckCircle2, Pause, Play, X, AlertCircle, Loader2, Cloud, Focus, Volume2, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Question, QuizState } from '../types';
 import { cn } from '../lib/utils';
+import { zenAudio, SoundscapeType } from '../lib/zenAudio';
 import { Calculator } from './Calculator';
 import { doc, updateDoc, deleteField } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
@@ -35,6 +36,35 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
   const [showSyncToast, setShowSyncToast] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showFocusWarning, setShowFocusWarning] = useState(false);
+  const [focusSoundscape, setFocusSoundscape] = useState<SoundscapeType>('off');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Stop ambient sound on unmount
+  useEffect(() => {
+    return () => {
+      zenAudio.stopSoundscape();
+    };
+  }, []);
+
+  const toggleQuizSoundscape = (type: SoundscapeType) => {
+    if (focusSoundscape === type) {
+      setFocusSoundscape('off');
+      zenAudio.stopSoundscape();
+    } else {
+      setFocusSoundscape(type);
+      zenAudio.playSoundscape(type, 0.35);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
 
   const currentQuestion = state.questions[state.currentIndex];
 
@@ -331,6 +361,32 @@ export function QuizScreen({ state, setState, onFinish, onLeave }: QuizScreenPro
             <Focus className="w-5 h-5" />
             <span className="hidden sm:inline text-sm font-medium">Focus</span>
           </button>
+          {isFocusMode && (
+            <>
+              <button
+                onClick={() => toggleQuizSoundscape(focusSoundscape === 'off' ? 'rain' : focusSoundscape === 'rain' ? 'alpha' : 'off')}
+                className={cn(
+                  "p-2 rounded-full transition-colors flex items-center space-x-1 px-2.5",
+                  focusSoundscape !== 'off'
+                    ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                    : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                title={focusSoundscape !== 'off' ? `Ambient: ${focusSoundscape} (Click to toggle / mute)` : "Enable Focus Soundscape"}
+              >
+                <Volume2 className={cn("w-4 h-4", focusSoundscape !== 'off' && "animate-pulse")} />
+                <span className="hidden md:inline text-xs font-medium capitalize">
+                  {focusSoundscape !== 'off' ? focusSoundscape : 'Sound'}
+                </span>
+              </button>
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+            </>
+          )}
           <button
             onClick={() => setShowLeaveConfirmation(true)}
             className="p-2 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors"

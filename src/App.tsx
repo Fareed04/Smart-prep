@@ -12,11 +12,12 @@ import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
-import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2 } from 'lucide-react';
+import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
+import { ZenMode } from './components/ZenMode';
 
 type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study';
 
@@ -59,6 +60,24 @@ export default function App() {
   const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
   const [hasBatteryAutoSaved, setHasBatteryAutoSaved] = useState<boolean>(false);
   const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
+  const [isZenModeOpen, setIsZenModeOpen] = useState<boolean>(false);
+  const [isZenModeMinimized, setIsZenModeMinimized] = useState<boolean>(false);
+
+  // Global Zen Mode keyboard shortcut (Alt+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.altKey && e.key.toLowerCase() === 'z') || (e.ctrlKey && e.key.toLowerCase() === 'j')) {
+        e.preventDefault();
+        setIsZenModeOpen(prev => !prev);
+        setIsZenModeMinimized(false);
+      }
+      if (e.key === 'Escape' && isZenModeOpen && !isZenModeMinimized) {
+        setIsZenModeOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isZenModeOpen, isZenModeMinimized]);
 
   // Initialize fluid inertia scrolling with Lenis
   useEffect(() => {
@@ -813,6 +832,19 @@ export default function App() {
               </div>
             )}
 
+            {/* Zen / Focus Mode Button */}
+            <button
+              onClick={() => {
+                setIsZenModeOpen(true);
+                setIsZenModeMinimized(false);
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs cursor-pointer group"
+              title="Open Zen / Focus Sanctuary (Alt+Z)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Zen Focus</span>
+            </button>
+
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
@@ -1055,6 +1087,14 @@ export default function App() {
           </div>
         </footer>
       )}
+
+      {/* Global Zen Sanctuary & Focus Mode Overlay / Widget */}
+      <ZenMode 
+        isOpen={isZenModeOpen} 
+        onClose={() => setIsZenModeOpen(false)} 
+        isMinimized={isZenModeMinimized} 
+        onToggleMinimize={() => setIsZenModeMinimized(prev => !prev)} 
+      />
     </div>
   );
 }
