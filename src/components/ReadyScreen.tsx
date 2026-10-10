@@ -1,4 +1,4 @@
-import { Play, FileText, Settings, Plus, Building2, Clock, Target } from 'lucide-react';
+import { Play, FileText, Settings, Plus, Building2, Clock, Target, Sparkles } from 'lucide-react';
 import { Question } from '../types';
 import { cn } from '../lib/utils';
 
@@ -19,6 +19,8 @@ interface ReadyScreenProps {
   setQuizDuration: (val: number) => void;
   isPracticeMode: boolean;
   setIsPracticeMode: (val: boolean) => void;
+  isZenMode: boolean;
+  setIsZenMode: (val: boolean) => void;
 }
 
 export function ReadyScreen({ 
@@ -37,7 +39,9 @@ export function ReadyScreen({
   quizDuration,
   setQuizDuration,
   isPracticeMode,
-  setIsPracticeMode
+  setIsPracticeMode,
+  isZenMode,
+  setIsZenMode
 }: ReadyScreenProps) {
   // Treat undefined company as 'KPMG' for legacy questions
   const companiesInPool = Array.from(new Set(pool.map(q => q.company || 'KPMG'))) as string[];
@@ -238,6 +242,37 @@ export function ReadyScreen({
               </button>
             </div>
 
+            {/* Zen Mode Toggle */}
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/60 mt-3">
+              <div className="text-left pr-4">
+                <div className="flex items-center space-x-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="font-semibold text-slate-900 dark:text-white text-sm">Zen Mode (Distraction-Free)</span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Full app immersion: hides all menus, top nav, sidebars & alerts for 100% test focus.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsZenMode(!isZenMode)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2",
+                  isZenMode ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-700"
+                )}
+                role="switch"
+                aria-checked={isZenMode}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    isZenMode ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+
             {/* Quiz Duration Slider */}
             {!isPracticeMode ? (
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -284,10 +319,24 @@ export function ReadyScreen({
         <div className="pt-6 space-y-4">
           <button
             onClick={onStart}
-            className="w-full flex items-center justify-center space-x-2 px-8 py-4 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg text-lg"
+            className={cn(
+              "w-full flex items-center justify-center space-x-2 px-8 py-4 font-medium rounded-xl transition-all shadow-md hover:shadow-lg text-lg group",
+              isZenMode 
+                ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/30" 
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            )}
           >
-            <Play className="w-6 h-6" />
-            <span>Start Simulation Now</span>
+            {isZenMode ? (
+              <>
+                <Sparkles className="w-6 h-6 group-hover:scale-110 transition-transform text-indigo-200" />
+                <span>Start Zen Simulation</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-6 h-6" />
+                <span>Start Simulation Now</span>
+              </>
+            )}
           </button>
           
           <div className="flex flex-col sm:flex-row gap-4">

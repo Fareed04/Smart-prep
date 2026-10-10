@@ -17,7 +17,6 @@ import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
-import { ZenMode } from './components/ZenMode';
 
 type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study';
 
@@ -60,24 +59,13 @@ export default function App() {
   const [dismissedBatteryWarning, setDismissedBatteryWarning] = useState<boolean>(false);
   const [hasBatteryAutoSaved, setHasBatteryAutoSaved] = useState<boolean>(false);
   const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
-  const [isZenModeOpen, setIsZenModeOpen] = useState<boolean>(false);
-  const [isZenModeMinimized, setIsZenModeMinimized] = useState<boolean>(false);
+  const [isZenMode, setIsZenMode] = useState<boolean>(() => {
+    return localStorage.getItem('smartprep_zen_quiz_mode') !== 'false';
+  });
 
-  // Global Zen Mode keyboard shortcut (Alt+Z)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.altKey && e.key.toLowerCase() === 'z') || (e.ctrlKey && e.key.toLowerCase() === 'j')) {
-        e.preventDefault();
-        setIsZenModeOpen(prev => !prev);
-        setIsZenModeMinimized(false);
-      }
-      if (e.key === 'Escape' && isZenModeOpen && !isZenModeMinimized) {
-        setIsZenModeOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isZenModeOpen, isZenModeMinimized]);
+    localStorage.setItem('smartprep_zen_quiz_mode', String(isZenMode));
+  }, [isZenMode]);
 
   // Initialize fluid inertia scrolling with Lenis
   useEffect(() => {
@@ -489,11 +477,54 @@ export default function App() {
       isFinished: false,
       timeRemaining: quizDuration * 60,
       flaggedQuestions: [],
-      isPracticeMode: isPracticeMode
+      isPracticeMode: isPracticeMode,
+      isZenMode: isZenMode
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty, quizDuration, isPracticeMode]);
+  }, [extractedPool, questionProgress, masteryMode, selectedCompany, selectedCategory, selectedDifficulty, quizDuration, isPracticeMode, isZenMode]);
+
+  const handleStartZenQuiz = React.useCallback(() => {
+    setIsZenMode(true);
+    if (extractedPool.length === 0) {
+      alert("No questions available in the pool. Please upload study materials or generate mock assessments first.");
+      setAppState('upload');
+      return;
+    }
+    // Launch a 15-question focused Zen session immediately
+    const shuffledPool = [...extractedPool].sort(() => Math.random() - 0.5);
+    const quizQuestions = shuffledPool.slice(0, 15);
+    
+    setQuizDuration(15);
+    setQuizState({
+      sessionId: Math.random().toString(36).substring(2, 15),
+      questions: quizQuestions,
+      currentIndex: 0,
+      answers: {},
+      isFinished: false,
+      timeRemaining: 15 * 60,
+      flaggedQuestions: [],
+      isZenMode: true
+    });
+    setIsViewingPastReport(false);
+    setAppState('quiz');
+  }, [extractedPool]);
+
+  // Global Zen Mode keyboard shortcut (Alt+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.altKey && e.key.toLowerCase() === 'z') || (e.ctrlKey && e.key.toLowerCase() === 'j')) {
+        e.preventDefault();
+        if (appState === 'quiz') {
+          setIsZenMode(prev => !prev);
+        } else {
+          handleStartZenQuiz();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [appState, handleStartZenQuiz]);
 
   const handleQuickStart = React.useCallback(() => {
     // Select 10 random questions from the pool
@@ -514,11 +545,12 @@ export default function App() {
       answers: {},
       isFinished: false,
       timeRemaining: 5 * 60,
-      flaggedQuestions: []
+      flaggedQuestions: [],
+      isZenMode: isZenMode
     });
     setIsViewingPastReport(false);
     setAppState('quiz');
-  }, [extractedPool]);
+  }, [extractedPool, isZenMode]);
 
   const handleUpgradePool = React.useCallback(async () => {
     try {
@@ -798,106 +830,99 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-200 dark:selection:bg-blue-900 transition-colors duration-200">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-200">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => user && setAppState('dashboard')}>
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Smart-Prep</span>
-            {!isOnline && (
-              <span className="ml-3 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                Offline
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {batteryLevel !== null && (
-              <div 
-                className="flex items-center space-x-1 text-slate-600 dark:text-slate-400 text-sm font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-full"
-                title={isCharging ? "Charging" : `Battery: ${Math.round(batteryLevel * 100)}%`}
-              >
-                {isCharging ? (
-                  <BatteryCharging className="w-4 h-4 text-green-500" />
-                ) : batteryLevel > 0.5 ? (
-                  <BatteryFull className="w-4 h-4" />
-                ) : batteryLevel > 0.2 ? (
-                  <BatteryMedium className="w-4 h-4" />
-                ) : (
-                  <BatteryLow className="w-4 h-4 text-red-500" />
-                )}
-                <span className="text-xs hidden sm:inline">{Math.round(batteryLevel * 100)}%</span>
+      {appState !== 'quiz' && (
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 transition-colors duration-200">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => user && setAppState('dashboard')}>
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
-            )}
-
-            {/* Zen / Focus Mode Button */}
-            <button
-              onClick={() => {
-                setIsZenModeOpen(true);
-                setIsZenModeMinimized(false);
-              }}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs cursor-pointer group"
-              title="Open Zen / Focus Sanctuary (Alt+Z)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Zen Focus</span>
-            </button>
-
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-              title="Toggle Dark Mode"
-            >
-              {isDarkMode ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
+              <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Smart-Prep</span>
+              {!isOnline && (
+                <span className="ml-3 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 flex items-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                  Offline
+                </span>
               )}
-            </button>
+            </div>
+            
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {batteryLevel !== null && (
+                <div 
+                  className="flex items-center space-x-1 text-slate-600 dark:text-slate-400 text-sm font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-full"
+                  title={isCharging ? "Charging" : `Battery: ${Math.round(batteryLevel * 100)}%`}
+                >
+                  {isCharging ? (
+                    <BatteryCharging className="w-4 h-4 text-green-500" />
+                  ) : batteryLevel > 0.5 ? (
+                    <BatteryFull className="w-4 h-4" />
+                  ) : batteryLevel > 0.2 ? (
+                    <BatteryMedium className="w-4 h-4" />
+                  ) : (
+                    <BatteryLow className="w-4 h-4 text-red-500" />
+                  )}
+                  <span className="text-xs hidden sm:inline">{Math.round(batteryLevel * 100)}%</span>
+                </div>
+              )}
 
-            {user && (
-              <>
-                <button 
-                  onClick={() => setAppState('dashboard')}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="hidden sm:inline font-medium">Dashboard</span>
-                </button>
-                <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-                <button 
-                  onClick={logOut}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="hidden sm:inline font-medium">Sign Out</span>
-                </button>
-              </>
-            )}
+              {/* Distraction-Free Zen Quiz Mode Button */}
+              <button
+                onClick={handleStartZenQuiz}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 shadow-2xs cursor-pointer group"
+                title="Start a distraction-free Zen Quiz (Alt+Z)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Zen Quiz</span>
+              </button>
+
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                title="Toggle Dark Mode"
+              >
+                {isDarkMode ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+
+              {user && (
+                <>
+                  <button 
+                    onClick={() => setAppState('dashboard')}
+                    className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span className="hidden sm:inline font-medium">Dashboard</span>
+                  </button>
+                  <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                  <button 
+                    onClick={logOut}
+                    className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="hidden sm:inline font-medium">Sign Out</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      {batteryLevel !== null && batteryLevel < 0.10 && !isCharging && !dismissedBatteryWarning && (
+      {appState !== 'quiz' && batteryLevel !== null && batteryLevel < 0.10 && !isCharging && !dismissedBatteryWarning && (
         <div className="bg-red-50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800/50 p-4">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between">
             <div className="flex items-start sm:items-center space-x-3">
               <BatteryWarning className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 sm:mt-0 flex-shrink-0" />
               <div className="text-sm text-red-800 dark:text-red-200">
                 <span className="font-semibold block sm:inline mb-1 sm:mb-0 sm:mr-2">Low Battery Warning ({Math.round(batteryLevel * 100)}%)</span>
-                {appState === 'quiz' && hasBatteryAutoSaved ? (
-                  <span className="inline-flex items-center gap-1.5 flex-wrap sm:inline">
-                    Your current quiz progress has been <span className="font-semibold text-green-700 dark:text-green-400 inline-flex items-center gap-0.5"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" /> automatically saved</span> to local storage to prevent data loss. Please connect to a power source.
-                  </span>
-                ) : (
-                  "Please connect to a power source or save your progress before starting a long assessment."
-                )}
+                Please connect to a power source or save your progress before starting a long assessment.
               </div>
             </div>
             <button 
@@ -926,6 +951,7 @@ export default function App() {
                 }
               }}
               onQuickStart={handleQuickStart}
+              onStartZen={handleStartZenQuiz}
               onUpgradePool={handleUpgradePool}
               onViewReport={handleViewReport}
               onOpenStudyHub={() => setAppState('study')}
@@ -1019,6 +1045,8 @@ export default function App() {
             setQuizDuration={setQuizDuration}
             isPracticeMode={isPracticeMode}
             setIsPracticeMode={setIsPracticeMode}
+            isZenMode={isZenMode}
+            setIsZenMode={setIsZenMode}
           />
         )}
         {appState === 'quiz' && (
@@ -1027,6 +1055,8 @@ export default function App() {
             setState={setQuizState} 
             onFinish={handleFinishQuiz} 
             onLeave={handleLeaveQuiz}
+            isZenMode={isZenMode}
+            onToggleZenMode={() => setIsZenMode(prev => !prev)}
           />
         )}
         {appState === 'report' && (
@@ -1087,14 +1117,6 @@ export default function App() {
           </div>
         </footer>
       )}
-
-      {/* Global Zen Sanctuary & Focus Mode Overlay / Widget */}
-      <ZenMode 
-        isOpen={isZenModeOpen} 
-        onClose={() => setIsZenModeOpen(false)} 
-        isMinimized={isZenModeMinimized} 
-        onToggleMinimize={() => setIsZenModeMinimized(prev => !prev)} 
-      />
     </div>
   );
 }

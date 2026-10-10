@@ -12,6 +12,7 @@ import { StudyRoadmap } from './StudyRoadmap';
 interface DashboardProps {
   onStartNew: () => void;
   onQuickStart: () => void;
+  onStartZen?: () => void;
   onUpgradePool?: () => void;
   onViewReport: (session: QuizSession) => void;
   onOpenStudyHub: () => void;
@@ -22,7 +23,7 @@ interface DashboardProps {
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewReport, onOpenStudyHub, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool, onViewReport, onOpenStudyHub, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFetchingTips, setIsFetchingTips] = useState(false);
@@ -242,6 +243,15 @@ export function Dashboard({ onStartNew, onQuickStart, onUpgradePool, onViewRepor
           >
             <Zap className="w-5 h-5 text-amber-500 fill-current" />
             <span>Quick 15 Qs</span>
+          </button>
+
+          <button
+            onClick={onStartZen ? onStartZen : onStartNew}
+            className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-5 py-3 rounded-2xl font-bold transition-all border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs group"
+            title="Start a distraction-free Zen Assessment"
+          >
+            <Sparkles className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
+            <span>Zen Quiz</span>
           </button>
           
           <button

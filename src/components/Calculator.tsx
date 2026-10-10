@@ -3,8 +3,27 @@ import { Calculator as CalcIcon, X, Delete, Trash2, GripHorizontal } from 'lucid
 import { cn } from '../lib/utils';
 import { motion, useDragControls } from 'motion/react';
 
-export function Calculator() {
-  const [isOpen, setIsOpen] = useState(false);
+interface CalculatorProps {
+  isOpen?: boolean;
+  onToggle?: () => void;
+  onClose?: () => void;
+}
+
+export function Calculator({ isOpen: controlledIsOpen, onToggle, onClose }: CalculatorProps = {}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
+  const handleOpen = () => {
+    if (onToggle) onToggle();
+    else setInternalIsOpen(true);
+  };
+
+  const handleClose = () => {
+    if (onClose) onClose();
+    else if (onToggle) onToggle();
+    else setInternalIsOpen(false);
+  };
+
   const [display, setDisplay] = useState('0');
   const [equation, setEquation] = useState('');
   const [history, setHistory] = useState<{eq: string, res: string}[]>([]);
@@ -119,7 +138,7 @@ export function Calculator() {
         handleDel();
       } else if (key === 'Escape') {
         e.preventDefault();
-        setIsOpen(false);
+        handleClose();
       } else if (key.toLowerCase() === 'c') {
         e.preventDefault();
         clear();
@@ -132,7 +151,7 @@ export function Calculator() {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className="fixed bottom-6 right-6 p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full shadow-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-transform hover:scale-105 active:scale-95 z-50"
       >
         <CalcIcon className="w-6 h-6" />
@@ -165,7 +184,7 @@ export function Calculator() {
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={() => setIsOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer" onPointerDown={(e) => e.stopPropagation()}>
+          <button onClick={handleClose} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer" onPointerDown={(e) => e.stopPropagation()}>
             <X className="w-4 h-4" />
           </button>
         </div>
