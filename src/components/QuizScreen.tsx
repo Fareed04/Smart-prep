@@ -656,6 +656,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                 <span className="hidden sm:inline text-sm font-medium">{isCurrentFlagged ? 'Flagged' : 'Flag'}</span>
               </button>
               <button
+                onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+                className={cn(
+                  "p-2 rounded-full transition-colors flex items-center space-x-1 px-3",
+                  isCalculatorOpen
+                    ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400"
+                )}
+                title="Toggle Calculator (C)"
+              >
+                <CalcIcon className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm font-medium">Calc</span>
+              </button>
+              <button
                 onClick={handleToggleZen}
                 className="p-2 rounded-full transition-colors flex items-center space-x-1 px-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100"
                 title="Enter Distraction-Free Zen Mode"
@@ -1230,7 +1243,12 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
       <Calculator 
         isOpen={isCalculatorOpen} 
         onToggle={() => setIsCalculatorOpen(prev => !prev)} 
-        onClose={() => setIsCalculatorOpen(false)} 
+        onClose={() => setIsCalculatorOpen(false)}
+        hideFloatingTrigger={zenActive}
+        onInsertToNotes={(calcStr) => {
+          setScratchpadNotes(prev => prev ? `${prev}\n${calcStr}` : calcStr);
+          setShowScratchpad(true);
+        }}
       />
     </div>
   );
