@@ -11,7 +11,8 @@ import {
   Maximize2, 
   FileText,
   History,
-  ArrowRight
+  CornerDownLeft,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, useDragControls } from 'motion/react';
@@ -40,19 +41,17 @@ const MAX_HISTORY = 5;
 // Factorial helper
 function factorial(n: number): number {
   if (n < 0 || !Number.isInteger(n)) return NaN;
-  if (n > 170) return Infinity; // JS Number overflow threshold
+  if (n > 170) return Infinity;
   if (n === 0 || n === 1) return 1;
   let res = 1;
   for (let i = 2; i <= n; i++) res *= i;
   return res;
 }
 
-// Clean floating point artifacts (e.g. 0.1 + 0.2 -> 0.3)
+// Clean floating point artifacts
 function formatCleanNumber(num: number): string {
   if (isNaN(num)) return 'Error';
   if (!isFinite(num)) return num > 0 ? 'Infinity' : '-Infinity';
-  
-  // Format with high precision and strip trailing zeros
   const prec = Number(num.toPrecision(12));
   return String(prec);
 }
@@ -74,7 +73,6 @@ function evaluateMathExpression(expr: string, angleMode: AngleMode): { success: 
     let s = expr.trim();
     if (!s) return { success: false, result: '0' };
 
-    // Replace display operators with evaluation equivalents
     s = s.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
 
     // Auto-balance parentheses
@@ -92,7 +90,7 @@ function evaluateMathExpression(expr: string, angleMode: AngleMode): { success: 
     s = s.replace(/\bπ\b/g, `(${Math.PI})`);
     s = s.replace(/\be\b/g, `(${Math.E})`);
 
-    // Handle factorial syntax: num!
+    // Factorials
     s = s.replace(/(\d+(\.\d+)?)!/g, (_, n) => `factorial(${n})`);
 
     // Trig transformations respecting angle mode
@@ -106,29 +104,28 @@ function evaluateMathExpression(expr: string, angleMode: AngleMode): { success: 
     s = s.replace(/\bacos\(([^)]+)\)/g, `(Math.acos($1) ${fromRad})`);
     s = s.replace(/\batan\(([^)]+)\)/g, `(Math.atan($1) ${fromRad})`);
 
-    // Math functions
+    // Standard Math functions
     s = s.replace(/\bln\(/g, 'Math.log(');
     s = s.replace(/\blog\(/g, 'Math.log10(');
     s = s.replace(/\bsqrt\(/g, 'Math.sqrt(');
     s = s.replace(/\bcbrt\(/g, 'Math.cbrt(');
     s = s.replace(/\babs\(/g, 'Math.abs(');
 
-    // Exponents: x^y -> Math.pow(x, y)
+    // Exponents
     while (s.includes('^')) {
       s = s.replace(/([a-zA-Z0-9_.]+|\([^\(\)]+\))\^([a-zA-Z0-9_.]+|\([^\(\)]+\))/, 'Math.pow($1, $2)');
     }
 
-    // Implicit multiplication: e.g. 2(3) -> 2*(3) or (2)(3) -> (2)*(3)
+    // Implicit multiplication
     s = s.replace(/(\d+)\s*\(/g, '$1*(');
     s = s.replace(/\)\s*(\d+)/g, ')*$1');
     s = s.replace(/\)\s*\(/g, ')*(');
 
-    // Check for division by zero before evaluation
+    // Division by zero check
     if (/\/0(?![.0-9])/.test(s)) {
       return { success: false, result: 'Cannot divide by 0' };
     }
 
-    // Sandbox execution with restricted scope
     const evalFn = new Function('Math', 'factorial', `return (${s});`);
     const rawResult = evalFn(Math, factorial);
 
@@ -191,7 +188,6 @@ export function Calculator({
   const [copiedHistoryId, setCopiedHistoryId] = useState<string | null>(null);
   const [insertedHistoryId, setInsertedHistoryId] = useState<string | null>(null);
 
-  const displayRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
   // Save history and mode
@@ -203,7 +199,7 @@ export function Calculator({
     try {
       localStorage.setItem('smartprep_calc_history', JSON.stringify(history.slice(0, MAX_HISTORY)));
     } catch {
-      // ignore quota
+      // ignore
     }
   }, [history]);
 
@@ -227,7 +223,6 @@ export function Calculator({
       result: res,
       timestamp: Date.now()
     };
-    // Keep strictly the last 5 calculations performed (newest first)
     setHistory(prev => [newItem, ...prev].slice(0, MAX_HISTORY));
   };
 
@@ -558,7 +553,15 @@ export function Calculator({
     return Math.max(0, count);
   }, [equation]);
 
-  // If closed and not hidden, show floating toggle button
+  // Responsive font sizing for display readout
+  const displayFontSize = useMemo(() => {
+    const len = display.length;
+    if (len > 14) return 'text-xl sm:text-2xl';
+    if (len > 10) return 'text-2xl sm:text-3xl';
+    return 'text-3xl sm:text-4xl';
+  }, [display]);
+
+  // Floating trigger button when closed
   if (!isOpen) {
     if (hideFloatingTrigger) return null;
     return (
@@ -578,24 +581,24 @@ export function Calculator({
       <motion.div
         drag
         dragMomentum={false}
-        className="fixed bottom-6 right-6 z-50 bg-slate-900/95 text-white dark:bg-slate-800/95 border border-slate-700 rounded-full shadow-2xl px-4 py-2.5 flex items-center space-x-3 backdrop-blur-md cursor-move select-none"
+        className="fixed bottom-6 right-6 z-50 bg-slate-900/95 text-white dark:bg-slate-900/95 border border-slate-700/80 rounded-full shadow-2xl px-4 py-2.5 flex items-center space-x-3 backdrop-blur-md cursor-move select-none"
       >
         <div className="flex items-center space-x-2" onClick={() => setIsMinimized(false)}>
           <CalcIcon className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs font-semibold text-slate-200">Calc:</span>
-          <span className="font-mono text-sm font-bold text-white max-w-[120px] truncate">{display}</span>
+          <span className="text-xs font-semibold text-slate-300">Calc:</span>
+          <span className="font-mono text-sm font-bold text-white max-w-[130px] truncate">{display}</span>
         </div>
         <div className="flex items-center space-x-1 pl-2 border-l border-slate-700">
           <button
             onClick={() => setIsMinimized(false)}
-            className="p-1 hover:text-indigo-400 text-slate-400 rounded transition-colors"
+            className="p-1 hover:text-indigo-400 text-slate-400 rounded-lg transition-colors"
             title="Expand Calculator"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleClose}
-            className="p-1 hover:text-red-400 text-slate-400 rounded transition-colors"
+            className="p-1 hover:text-rose-400 text-slate-400 rounded-lg transition-colors"
             title="Close Calculator"
           >
             <X className="w-3.5 h-3.5" />
@@ -605,119 +608,134 @@ export function Calculator({
     );
   }
 
+  const isClearAllState = display === '0' && equation === '';
+
   return (
     <motion.div 
       drag
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}
-      initial={{ opacity: 0, y: 15, scale: 0.96 }}
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        "fixed bottom-6 right-6 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 flex flex-col transition-all duration-300",
-        calcMode === 'scientific' ? "w-[390px] sm:w-[460px]" : "w-[320px] sm:w-[350px]"
+        "fixed bottom-6 right-6 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.7)] border border-slate-200/90 dark:border-slate-800 overflow-hidden z-50 flex flex-col transition-[width] duration-200",
+        calcMode === 'scientific' ? "w-[360px] sm:w-[410px]" : "w-[316px] sm:w-[338px]"
       )}
     >
-      {/* Title Bar & Drag Header */}
+      {/* Studio Window Chrome / Title Bar */}
       <div 
         onPointerDown={(e) => dragControls.start(e)}
-        className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800/80 cursor-move select-none"
+        className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/90 dark:bg-slate-850/80 border-b border-slate-200/80 dark:border-slate-800 cursor-move select-none backdrop-blur-sm"
       >
+        {/* Brand & Status */}
         <div className="flex items-center space-x-2">
-          <GripHorizontal className="w-4 h-4 text-slate-400" />
-          <div className="flex items-center space-x-1.5 font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-            <CalcIcon className="w-4 h-4 text-indigo-500" />
-            <span>Aptitude Calc</span>
+          <GripHorizontal className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+          <div className="flex items-center space-x-1.5 font-semibold text-xs text-slate-800 dark:text-slate-200">
+            <div className="w-4 h-4 rounded-md bg-indigo-600/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <CalcIcon className="w-3 h-3" />
+            </div>
+            <span>Calculator</span>
           </div>
           {memory !== null && (
-            <span className="text-[10px] bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-mono px-1.5 py-0.5 rounded border border-indigo-500/20" title={`Stored Memory: ${memory}`}>
+            <span 
+              className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/70 dark:border-indigo-800/60"
+              title={`Memory Stored: ${memory}`}
+            >
               M
             </span>
           )}
         </div>
 
+        {/* View Switcher, Mode, & Window Controls */}
         <div className="flex items-center space-x-1.5" onPointerDown={(e) => e.stopPropagation()}>
-          {/* History Tab Toggle Button */}
-          <button
-            onClick={() => setActiveTab(prev => prev === 'keypad' ? 'history' : 'keypad')}
-            className={cn(
-              "px-2 py-1 text-[11px] font-medium rounded-lg transition-colors border flex items-center gap-1",
-              activeTab === 'history'
-                ? "bg-indigo-600 text-white border-indigo-500"
-                : "bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 border-transparent hover:bg-slate-300 dark:hover:bg-slate-600"
-            )}
-            title="Toggle Calculation History (H)"
-          >
-            <History className="w-3.5 h-3.5" />
-            <span>History</span>
-            {history.length > 0 && (
-              <span className={cn(
-                "px-1 py-0.2 rounded-full text-[9px] font-bold",
-                activeTab === 'history' ? "bg-white text-indigo-600" : "bg-indigo-600 text-white"
-              )}>
-                {history.length}
-              </span>
-            )}
-          </button>
+          {/* Segmented View Control (Keypad / History) */}
+          <div className="flex items-center bg-slate-200/70 dark:bg-slate-800 p-0.5 rounded-lg text-[11px] font-medium">
+            <button
+              onClick={() => setActiveTab('keypad')}
+              className={cn(
+                "px-2 py-0.5 rounded-md transition-all cursor-pointer",
+                activeTab === 'keypad' 
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              )}
+            >
+              Keypad
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={cn(
+                "px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1",
+                activeTab === 'history' 
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              )}
+              title="View Last 5 Calculations (H)"
+            >
+              <span>History</span>
+              {history.length > 0 && (
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {history.length}
+                </span>
+              )}
+            </button>
+          </div>
 
-          {/* Mode Switcher */}
+          {/* Scientific Mode Toggle */}
           <button
             onClick={() => setCalcMode(prev => prev === 'standard' ? 'scientific' : 'standard')}
             className={cn(
-              "px-2 py-1 text-[11px] font-medium rounded-lg transition-colors border",
+              "px-1.5 py-0.5 text-[11px] font-semibold rounded-md transition-colors cursor-pointer",
               calcMode === 'scientific' 
-                ? "bg-slate-800 text-white dark:bg-slate-700 border-slate-600" 
-                : "bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 border-transparent hover:bg-slate-300 dark:hover:bg-slate-600"
+                ? "bg-indigo-600 text-white" 
+                : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800"
             )}
-            title="Toggle Scientific functions"
+            title="Toggle Scientific Mode"
           >
             {calcMode === 'scientific' ? 'Sci' : 'Std'}
           </button>
 
-          {/* Angle mode toggle when in scientific */}
+          {/* Angle mode toggle when scientific */}
           {calcMode === 'scientific' && (
             <button
               onClick={() => setAngleMode(prev => prev === 'DEG' ? 'RAD' : 'DEG')}
-              className="px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
-              title="Toggle Degree / Radian"
+              className="px-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              title="Toggle DEG / RAD"
             >
               {angleMode}
             </button>
           )}
 
-          {/* Minimize */}
+          {/* Window action buttons */}
           <button 
             onClick={() => setIsMinimized(true)}
-            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded transition-colors"
-            title="Minimize to dock"
+            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-md transition-colors cursor-pointer"
+            title="Minimize"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
 
-          {/* Close */}
           <button 
             onClick={handleClose} 
-            className="p-1 text-slate-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+            className="p-1 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-md transition-colors cursor-pointer"
             title="Close (Esc)"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
       
-      {/* Main Content Area */}
-      <div className="p-3.5 space-y-2.5">
-        {/* Crisp Display Area */}
-        <div 
-          ref={displayRef} 
-          className="bg-slate-100 dark:bg-slate-950 p-3 rounded-2xl text-right flex flex-col justify-between h-28 border border-slate-200/70 dark:border-slate-800/70"
-        >
-          {/* Top Status & Last Answer Reference */}
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+      {/* Body Area */}
+      <div className="p-3 space-y-2.5">
+        {/* High-Contrast Calculator Display Screen */}
+        <div className="bg-slate-950 dark:bg-black rounded-xl p-3 border border-slate-800/80 shadow-inner flex flex-col justify-between min-h-[110px] relative overflow-hidden select-text">
+          {/* Top Line: Expression & Unclosed Parens & Memory status */}
+          <div className="flex items-center justify-between text-xs text-slate-400 font-mono tracking-tight min-h-[1.25rem]">
             <div className="flex items-center gap-1.5 overflow-hidden">
               {unclosedParens > 0 && (
-                <span className="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400">
+                <span className="text-[11px] font-semibold text-amber-400">
                   ({unclosedParens} open)
                 </span>
               )}
@@ -727,124 +745,108 @@ export function Calculator({
                     setDisplay(history[0].result);
                     setJustCalculated(true);
                   }}
-                  className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 truncate max-w-[140px] bg-slate-200/60 dark:bg-slate-800/60 px-1.5 py-0.5 rounded"
-                  title={`Previous result (Ans: ${history[0].result}). Click to recall.`}
+                  className="text-[10px] text-slate-400 hover:text-indigo-300 transition-colors flex items-center gap-1 truncate max-w-[150px] bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800 cursor-pointer"
+                  title={`Previous Answer: ${history[0].result}. Click to recall.`}
                 >
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">Ans:</span>
+                  <span className="text-indigo-400 font-bold">Ans:</span>
                   <span className="truncate">{history[0].result}</span>
                 </button>
               )}
             </div>
 
-            <div className="truncate max-w-[170px] font-medium text-slate-600 dark:text-slate-300">
+            <div className="truncate max-w-[170px] font-medium text-slate-400">
               {equation}
             </div>
           </div>
 
-          {/* Bottom Live Number & Utility Actions */}
-          <div className="flex items-baseline justify-between mt-1">
-            <div className="flex items-center space-x-1">
+          {/* Bottom Line: Readout & Quick Action Toolbar */}
+          <div className="flex items-baseline justify-between mt-2 pt-1">
+            <div className="flex items-center space-x-1 shrink-0">
               <button
                 onClick={copyResult}
-                className="p-1 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors rounded"
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-850 rounded transition-colors cursor-pointer"
                 title="Copy result"
               >
-                {copiedToast ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedToast ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
 
               {onInsertToNotes && (
                 <button
                   onClick={insertToNotes}
-                  className="p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors rounded"
-                  title="Insert to Notes"
+                  className="p-1 text-slate-400 hover:text-amber-300 hover:bg-slate-850 rounded transition-colors cursor-pointer"
+                  title="Insert to Scratchpad Notes"
                 >
-                  {insertedToast ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <FileText className="w-3.5 h-3.5" />}
+                  {insertedToast ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <FileText className="w-3.5 h-3.5" />}
                 </button>
               )}
             </div>
 
             <div className={cn(
-              "font-mono font-bold text-slate-900 dark:text-white truncate tracking-tight text-right",
-              display.length > 12 ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
+              "font-mono font-medium text-white truncate tracking-tight text-right select-all pl-2",
+              displayFontSize
             )}>
               {display}
             </div>
           </div>
         </div>
 
-        {/* Quick Reference Strip for Last 5 Calculations (Visible on Keypad Tab) */}
-        {activeTab === 'keypad' && history.length > 0 && (
-          <div className="flex items-center justify-between px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/70 dark:border-slate-800/70 text-xs">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 uppercase tracking-wider flex items-center gap-1">
-                <History className="w-3 h-3 text-indigo-500" />
-                <span>Last 5:</span>
-              </span>
-              {history.map((item, idx) => (
+        {/* Tab 1: Keypad View */}
+        {activeTab === 'keypad' && (
+          <div className="space-y-2">
+            {/* Quick Reference Strip for Last 5 Calculations */}
+            {history.length > 0 ? (
+              <div className="flex items-center justify-between px-2 py-1 bg-slate-100/70 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800/60 text-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 shrink-0 uppercase tracking-wider flex items-center gap-1">
+                    <History className="w-3 h-3 text-indigo-500" />
+                    <span>Recent:</span>
+                  </span>
+                  {history.map((item, idx) => (
+                    <button
+                      key={item.id}
+                      onClick={() => recallHistoryResult(item)}
+                      className="shrink-0 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/70 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 text-[11px] font-mono font-medium transition-all flex items-center gap-1 group shadow-2xs active:scale-95 cursor-pointer"
+                      title={`${item.equation} ${item.result} (Click to recall)`}
+                    >
+                      <span className="text-[9px] text-slate-400 font-sans group-hover:text-indigo-500">#{idx + 1}</span>
+                      <span className="font-semibold">{item.result}</span>
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  key={item.id}
-                  onClick={() => recallHistoryResult(item)}
-                  className="shrink-0 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-800 text-[11px] font-mono font-medium transition-all flex items-center gap-1 group shadow-xs cursor-pointer"
-                  title={`#${idx + 1}: ${item.equation} ${item.result} (Click to recall into display)`}
+                  onClick={() => setActiveTab('history')}
+                  className="shrink-0 text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold ml-1.5 px-1 py-0.5 cursor-pointer"
+                  title="View full history details"
                 >
-                  <span className="text-[9px] text-slate-400 font-sans group-hover:text-indigo-500 font-semibold">#{idx + 1}</span>
-                  <span className="font-semibold">{item.result}</span>
+                  All ({history.length})
+                </button>
+              </div>
+            ) : null}
+
+            {/* Low-Profile Memory Toolbar */}
+            <div className="grid grid-cols-5 gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-0.5">
+              {[
+                { label: 'MC', op: 'MC' as const, disabled: memory === null },
+                { label: 'MR', op: 'MR' as const, disabled: memory === null },
+                { label: 'M+', op: 'M+' as const, disabled: false },
+                { label: 'M-', op: 'M-' as const, disabled: false },
+                { label: 'MS', op: 'MS' as const, disabled: false },
+              ].map(item => (
+                <button 
+                  key={item.label}
+                  onClick={() => handleMemory(item.op)}
+                  disabled={item.disabled}
+                  className="py-0.5 rounded text-center hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                >
+                  {item.label}
                 </button>
               ))}
             </div>
 
-            <button
-              onClick={() => setActiveTab('history')}
-              className="shrink-0 text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold ml-1.5 px-1 py-0.5"
-              title="View full history details"
-            >
-              Details
-            </button>
-          </div>
-        )}
-
-        {/* Tab 1: Keypad View */}
-        {activeTab === 'keypad' && (
-          <>
-            {/* Memory Bar */}
-            <div className="grid grid-cols-5 gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-              <button 
-                onClick={() => handleMemory('MC')}
-                disabled={memory === null}
-                className="py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                MC
-              </button>
-              <button 
-                onClick={() => handleMemory('MR')}
-                disabled={memory === null}
-                className="py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                MR
-              </button>
-              <button 
-                onClick={() => handleMemory('M+')}
-                className="py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                M+
-              </button>
-              <button 
-                onClick={() => handleMemory('M-')}
-                className="py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                M-
-              </button>
-              <button 
-                onClick={() => handleMemory('MS')}
-                className="py-1 px-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                MS
-              </button>
-            </div>
-
-            {/* Scientific Functions Grid */}
+            {/* Scientific Functions Grid (When Sci is toggled) */}
             {calcMode === 'scientific' && (
-              <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
                 {[
                   { label: 'sin', action: () => handleUnary('sin') },
                   { label: 'cos', action: () => handleUnary('cos') },
@@ -866,7 +868,7 @@ export function Calculator({
                   <button
                     key={btn.label}
                     onClick={btn.action}
-                    className="py-1.5 px-2 bg-indigo-50/70 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold transition-colors border border-indigo-100 dark:border-indigo-900/50"
+                    className="h-8 bg-slate-100/80 dark:bg-slate-800/60 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold transition-all border border-slate-200/60 dark:border-slate-750 active:scale-95 cursor-pointer"
                   >
                     {btn.label}
                   </button>
@@ -874,31 +876,36 @@ export function Calculator({
               </div>
             )}
 
-            {/* Standard Keypad Grid */}
-            <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-200 dark:border-slate-800">
-              {/* Row 1: Clear, Parentheses, Backspace */}
+            {/* Tactile Keypad Grid */}
+            <div className="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+              {/* Row 1: Clear, Parens, Backspace */}
               <button 
                 onClick={clearAll} 
-                className="p-2.5 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-xl font-bold text-sm transition-colors"
-                title="Clear All (C)"
+                className={cn(
+                  "h-11 rounded-xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center cursor-pointer",
+                  isClearAllState 
+                    ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-750" 
+                    : "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/60"
+                )}
+                title={isClearAllState ? "All Clear" : "Clear (C)"}
               >
-                C
+                {isClearAllState ? 'AC' : 'C'}
               </button>
               <button 
                 onClick={() => handleInsertSymbol('(')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-sm transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
               >
                 (
               </button>
               <button 
                 onClick={() => handleInsertSymbol(')')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-sm transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
               >
                 )
               </button>
               <button 
                 onClick={handleBackspace} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-medium text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-medium transition-all active:scale-95 flex items-center justify-center cursor-pointer"
                 title="Backspace"
               >
                 <Delete className="w-4 h-4" />
@@ -907,25 +914,25 @@ export function Calculator({
               {/* Row 2: Standard Unary Quickies & Divide */}
               <button 
                 onClick={() => handleUnary('√')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-sm transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
               >
                 √
               </button>
               <button 
                 onClick={() => handleUnary('%')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-sm transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
               >
                 %
               </button>
               <button 
                 onClick={() => handleUnary('1/x')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-xs transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-xs transition-all active:scale-95 cursor-pointer"
               >
                 1/x
               </button>
               <button 
                 onClick={() => handleOperator('÷')} 
-                className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-base transition-colors"
+                className="h-11 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/40 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 ÷
               </button>
@@ -933,25 +940,25 @@ export function Calculator({
               {/* Row 3: 7 8 9 × */}
               <button 
                 onClick={() => handleNum('7')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 7
               </button>
               <button 
                 onClick={() => handleNum('8')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 8
               </button>
               <button 
                 onClick={() => handleNum('9')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 9
               </button>
               <button 
                 onClick={() => handleOperator('×')} 
-                className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-base transition-colors"
+                className="h-11 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/40 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 ×
               </button>
@@ -959,25 +966,25 @@ export function Calculator({
               {/* Row 4: 4 5 6 − */}
               <button 
                 onClick={() => handleNum('4')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 4
               </button>
               <button 
                 onClick={() => handleNum('5')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 5
               </button>
               <button 
                 onClick={() => handleNum('6')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 6
               </button>
               <button 
                 onClick={() => handleOperator('−')} 
-                className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-base transition-colors"
+                className="h-11 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/40 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 −
               </button>
@@ -985,25 +992,25 @@ export function Calculator({
               {/* Row 5: 1 2 3 + */}
               <button 
                 onClick={() => handleNum('1')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 1
               </button>
               <button 
                 onClick={() => handleNum('2')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 2
               </button>
               <button 
                 onClick={() => handleNum('3')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 3
               </button>
               <button 
                 onClick={() => handleOperator('+')} 
-                className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-base transition-colors"
+                className="h-11 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100/80 dark:border-indigo-900/40 rounded-xl font-bold text-lg transition-all active:scale-95 flex items-center justify-center cursor-pointer"
               >
                 +
               </button>
@@ -1011,54 +1018,54 @@ export function Calculator({
               {/* Row 6: ± 0 . = */}
               <button 
                 onClick={() => handleUnary('±')} 
-                className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-semibold text-slate-700 dark:text-slate-300 text-sm transition-colors"
+                className="h-11 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
                 title="Toggle Sign (±)"
               >
                 ±
               </button>
               <button 
                 onClick={() => handleNum('0')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 0
               </button>
               <button 
                 onClick={() => handleNum('.')} 
-                className="p-2.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-bold text-base text-slate-900 dark:text-white transition-colors"
+                className="h-11 bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-750 rounded-xl font-semibold text-base text-slate-900 dark:text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
               >
                 .
               </button>
               <button 
                 onClick={calculate} 
-                className="p-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-lg shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center cursor-pointer"
+                className="h-11 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl font-bold text-xl shadow-md shadow-indigo-600/30 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
                 title="Calculate (Enter or =)"
               >
                 =
               </button>
             </div>
-          </>
+          </div>
         )}
 
-        {/* Tab 2: Detailed History View of the Last 5 Calculations */}
+        {/* Tab 2: Detailed History View (Last 5 Calculations) */}
         {activeTab === 'history' && (
-          <div className="space-y-2.5 pt-1">
-            {/* History Header & Clear Action */}
-            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 dark:border-slate-800">
+          <div className="space-y-2.5 pt-0.5">
+            {/* Header & Clear */}
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 dark:border-slate-800">
               <div>
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   <History className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Calculation History</span>
-                  <span className="text-[10px] font-normal text-slate-400">({history.length}/{MAX_HISTORY} stored)</span>
+                  <span className="text-[10px] font-normal text-slate-400">({history.length}/{MAX_HISTORY})</span>
                 </h4>
                 <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                  Quickly reference and reuse previous assessment results
+                  Tap to recall any result into your active calculation
                 </p>
               </div>
 
               {history.length > 0 && (
                 <button
                   onClick={() => setHistory([])}
-                  className="text-[11px] text-red-500 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                  className="text-[11px] text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
                   title="Clear history"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -1067,23 +1074,23 @@ export function Calculator({
               )}
             </div>
 
-            {/* List of Last 5 Calculations */}
+            {/* List */}
             {history.length === 0 ? (
-              <div className="py-8 text-center text-slate-400 space-y-2 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-4">
-                <History className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-700 opacity-60" />
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">No calculations recorded yet</p>
-                <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto leading-relaxed">
-                  Perform calculations during your assessment to track and reference your last 5 results here.
+              <div className="py-8 text-center text-slate-400 space-y-2 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-4">
+                <History className="w-7 h-7 mx-auto text-slate-300 dark:text-slate-700" />
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">No calculations stored yet</p>
+                <p className="text-[11px] text-slate-400 max-w-[200px] mx-auto">
+                  Perform calculations to automatically keep your last 5 results here for reference.
                 </p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[310px] overflow-y-auto pr-0.5">
+              <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-0.5">
                 {history.map((item, index) => (
                   <div
                     key={item.id}
-                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700/60 transition-all group"
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700/60 transition-all group"
                   >
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono mb-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono mb-0.5">
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-indigo-600 dark:text-indigo-400">
                           #{index + 1}
@@ -1104,22 +1111,22 @@ export function Calculator({
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/50">
-                      <span className="text-base font-bold font-mono text-slate-900 dark:text-white truncate max-w-[160px]">
+                      <span className="text-base font-bold font-mono text-slate-900 dark:text-white truncate max-w-[150px]">
                         {item.result}
                       </span>
 
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => recallHistoryResult(item)}
-                          className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 transition-colors shadow-xs"
-                          title="Recall this result into active calculation"
+                          className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                          title="Recall into display"
                         >
-                          <ArrowRight className="w-3 h-3" />
+                          <CornerDownLeft className="w-3 h-3" />
                           <span>Recall</span>
                         </button>
                         <button
                           onClick={(e) => copyHistoryResult(item, e)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                           title="Copy result"
                         >
                           {copiedHistoryId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1127,8 +1134,8 @@ export function Calculator({
                         {onInsertToNotes && (
                           <button
                             onClick={(e) => insertHistoryToNotes(item, e)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                            title="Insert equation and result into scratchpad notes"
+                            className="p-1 rounded-lg text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                            title="Insert into Scratchpad"
                           >
                             {insertedHistoryId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <FileText className="w-3.5 h-3.5" />}
                           </button>
@@ -1140,13 +1147,13 @@ export function Calculator({
               </div>
             )}
 
-            {/* Back to Keypad Button */}
+            {/* Back Button */}
             <button
               onClick={() => setActiveTab('keypad')}
-              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <CalcIcon className="w-3.5 h-3.5" />
-              <span>Back to Keypad</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Return to Keypad</span>
             </button>
           </div>
         )}
