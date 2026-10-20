@@ -9,7 +9,7 @@ import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment, migrateLegacyQuestions } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
-import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, isFirestoreQuotaExceeded as initialQuotaStatus } from './lib/firebase';
+import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, markFirestoreQuotaExceeded, canWriteToFirestore } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
 import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2, Sparkles } from 'lucide-react';
@@ -52,7 +52,7 @@ export default function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isViewingPastReport, setIsViewingPastReport] = useState(false);
-  const [isQuotaExceeded, setIsQuotaExceeded] = useState(initialQuotaStatus);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(isFirestoreQuotaExceeded);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState<boolean>(false);
@@ -167,9 +167,6 @@ export default function App() {
   useEffect(() => {
     return onFirestoreQuotaStateChange((status) => {
       setIsQuotaExceeded(status);
-      if (status) {
-        setErrorMessage("Notice: Cloud database quota exceeded. Your progress will be saved locally in this browser, and we will try to sync it to the cloud once limits reset (usually every 24 hours).");
-      }
     });
   }, []);
 
@@ -237,7 +234,9 @@ export default function App() {
         try {
           const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
           if (profileDoc.exists()) {
-            setUserProfile(profileDoc.data() as UserProfile);
+            const data = profileDoc.data() as UserProfile;
+            setUserProfile(data);
+            try { localStorage.setItem('smartprep_profile', JSON.stringify(data)); } catch {}
           } else {
             const initialProfile: UserProfile = {
               uid: currentUser.uid,
@@ -248,15 +247,31 @@ export default function App() {
               achievements: [],
               dailyGoal: 20
             };
-            await setDoc(doc(db, 'profiles', currentUser.uid), initialProfile);
+            if (canWriteToFirestore()) {
+              await setDoc(doc(db, 'profiles', currentUser.uid), initialProfile);
+            }
             setUserProfile(initialProfile);
+            try { localStorage.setItem('smartprep_profile', JSON.stringify(initialProfile)); } catch {}
           }
-        } catch (e) {
-          console.error("Error fetching/setting cloud profile", e);
-          try {
-            handleFirestoreError(e, OperationType.GET, `profiles/${currentUser.uid}`);
-          } catch (err: any) {
-            setErrorMessage(err.message);
+        } catch (e: any) {
+          console.warn("Cloud profile fetch skipped or failed; using local backup:", e);
+          const rawProf = localStorage.getItem('smartprep_profile');
+          if (rawProf) {
+            try { setUserProfile(JSON.parse(rawProf)); } catch {}
+          } else {
+            setUserProfile({
+              uid: currentUser.uid,
+              xp: 0,
+              level: 1,
+              streak: 1,
+              lastActive: new Date().toISOString(),
+              achievements: [],
+              dailyGoal: 20
+            });
+          }
+          const errStr = e?.message || e?.code || '';
+          if (errStr.includes('Quota') || errStr.includes('resource-exhausted')) {
+            markFirestoreQuotaExceeded();
           }
         }
 
@@ -287,12 +302,11 @@ export default function App() {
                 const parsedSession = JSON.parse(data.activeSession);
                 const cleared = JSON.parse(localStorage.getItem('smartprep_cleared_sessions') || '[]');
                 
-                // For legacy sessions without an ID, we'll check if we generally cleared a legacy session recently.
+                // For legacy sessions without an ID, check if we cleared a legacy session recently
                 const isSessionClearedLocally = (parsedSession.sessionId && cleared.includes(parsedSession.sessionId)) || 
                                                 (!parsedSession.sessionId && localStorage.getItem('smartprep_cleared_legacy') === 'true');
                 
                 if (!isSessionClearedLocally) {
-                  // Give it an ID now so we can clear it later if needed
                   if (!parsedSession.sessionId) {
                     parsedSession.sessionId = "legacy_" + Math.random().toString(36).substring(2, 10);
                   }
@@ -300,12 +314,13 @@ export default function App() {
                   hasActiveSession = true;
                 } else {
                   console.log("Ignoring cloud session because it was cleared locally.");
-                  // Make an attempt to clean up the zombie session
-                  try {
-                    updateDoc(doc(db, 'questionPools', currentUser.uid), {
-                      activeSession: deleteField()
-                    });
-                  } catch(e) {}
+                  if (canWriteToFirestore()) {
+                    try {
+                      updateDoc(doc(db, 'questionPools', currentUser.uid), {
+                        activeSession: deleteField()
+                      });
+                    } catch(e) {}
+                  }
                 }
               } catch (e) {
                 console.error("Failed to parse active session from cloud", e);
@@ -313,11 +328,10 @@ export default function App() {
             }
           }
         } catch (e: any) {
-          console.error("Error fetching cloud pool", e);
-          try {
-            handleFirestoreError(e, OperationType.GET, `questionPools/${currentUser.uid}`);
-          } catch (err: any) {
-            setErrorMessage(err.message);
+          console.warn("Cloud pool fetch unavailable; relying on local storage pool:", e);
+          const errStr = e?.message || e?.code || '';
+          if (errStr.includes('Quota') || errStr.includes('resource-exhausted')) {
+            markFirestoreQuotaExceeded();
           }
         }
 
@@ -365,16 +379,14 @@ export default function App() {
       const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
       setExtractedPool(mergedPool);
 
-      if (user && !isFirestoreQuotaExceeded) {
+      if (user && canWriteToFirestore()) {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(mergedPool),
           progress: JSON.stringify(questionProgress)
         }, { merge: true }).catch((err) => {
-          console.error(err);
-          try {
-            handleFirestoreError(err, OperationType.WRITE, 'questionPools');
-          } catch (e: any) {
-            setErrorMessage(e.message);
+          console.warn("Cloud pool sync skipped:", err);
+          if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+            markFirestoreQuotaExceeded();
           }
         });
       }
@@ -428,18 +440,15 @@ export default function App() {
           currentPool = deduplicateQuestions([...currentPool, ...batch]);
           setExtractedPool(currentPool);
           
-          // Save to cloud incrementally
-          if (user && !isFirestoreQuotaExceeded) {
+          // Save to cloud incrementally if database write is available
+          if (user && canWriteToFirestore()) {
             setDoc(doc(db, 'questionPools', user.uid), { 
               pool: JSON.stringify(currentPool),
               progress: JSON.stringify(questionProgress)
             }, { merge: true }).catch(err => {
-              console.error("Incremental sync failed", err);
-              // Call handleFirestoreError so quota state updates
-              try {
-                handleFirestoreError(err, OperationType.WRITE, 'questionPools');
-              } catch (e: any) {
-                // Ignore the UI error throw from handleFirestoreError during background sync
+              console.warn("Incremental cloud sync skipped:", err);
+              if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+                markFirestoreQuotaExceeded();
               }
             });
           }
@@ -576,12 +585,15 @@ export default function App() {
       });
 
       setExtractedPool(updatedPool);
-      if (user && !isFirestoreQuotaExceeded) {
+      if (user && canWriteToFirestore()) {
         setDoc(doc(db, 'questionPools', user.uid), { 
           pool: JSON.stringify(updatedPool),
           progress: JSON.stringify(questionProgress)
         }, { merge: true }).catch((err) => {
-          console.error(err);
+          console.warn("Pool update cloud sync skipped:", err);
+          if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+            markFirestoreQuotaExceeded();
+          }
         });
       }
 
@@ -609,11 +621,11 @@ export default function App() {
     }
     
     setQuizState(prev => ({ ...prev, isFinished: true })); // Force clear local storage
-    if (user) {
+    if (user && canWriteToFirestore()) {
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
       }).catch((err) => {
-        console.error("Failed to clear active session from cloud", err);
+        console.warn("Failed to clear active session from cloud", err);
       });
     }
     setAppState('ready');
@@ -665,16 +677,14 @@ export default function App() {
     });
     
     setQuestionProgress(newProgress);
-    if (user && !isFirestoreQuotaExceeded) {
+    if (user && canWriteToFirestore()) {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: JSON.stringify(extractedPool),
         progress: JSON.stringify(newProgress)
       }, { merge: true }).catch((err) => {
-        console.error(err);
-        try {
-          handleFirestoreError(err, OperationType.WRITE, 'questionPools');
-        } catch (e: any) {
-          setErrorMessage(e.message);
+        console.warn("Cloud progress sync skipped:", err);
+        if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+          markFirestoreQuotaExceeded();
         }
       });
     }
@@ -687,7 +697,7 @@ export default function App() {
     const correctCount = quizState.questions.filter(q => quizState.answers[q.id] === q.answer).length;
     const gainedXp = (correctCount * 50) + 200; // 50 per correct, 200 for finishing
     
-    if (user && userProfile && !isFirestoreQuotaExceeded) {
+    if (userProfile) {
       const newXp = userProfile.xp + gainedXp;
       const newLevel = Math.floor(newXp / 1000) + 1;
       
@@ -716,9 +726,16 @@ export default function App() {
       };
       
       setUserProfile(updatedProfile);
-      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
-        console.error(err);
-      });
+      try { localStorage.setItem('smartprep_profile', JSON.stringify(updatedProfile)); } catch {}
+
+      if (user && canWriteToFirestore()) {
+        setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
+          console.warn("Profile sync skipped or failed:", err);
+          if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+            markFirestoreQuotaExceeded();
+          }
+        });
+      }
 
       // Level up celebration!
       if (newLevel > userProfile.level) {
@@ -742,12 +759,11 @@ export default function App() {
       localStorage.setItem('smartprep_cleared_legacy', 'true');
     }
     
-    if (user) {
-      // Clear activeSession unconditionally (even if quota exceeded we try, or at least we don't tie it)
+    if (user && canWriteToFirestore()) {
       updateDoc(doc(db, 'questionPools', user.uid), {
         activeSession: deleteField()
       }).catch((err) => {
-        console.error("Failed to clear active session from cloud", err);
+        console.warn("Failed to clear active session from cloud", err);
       });
     }
 
@@ -760,17 +776,15 @@ export default function App() {
     setExtractedPool([]);
     setQuestionProgress({});
     
-    // Clear from cloud
-    if (user && !isFirestoreQuotaExceeded) {
+    // Clear from cloud if writable
+    if (user && canWriteToFirestore()) {
       setDoc(doc(db, 'questionPools', user.uid), { 
         pool: "[]",
         progress: "{}"
       }).catch((err) => {
-        console.error(err);
-        try {
-          handleFirestoreError(err, OperationType.WRITE, 'questionPools');
-        } catch (e: any) {
-          setErrorMessage(e.message);
+        console.warn("Cloud pool reset skipped:", err);
+        if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+          markFirestoreQuotaExceeded();
         }
       });
     }
@@ -797,7 +811,7 @@ export default function App() {
           answers: parsedAnswers,
           currentIndex: parsedQuestions.length - 1,
           isFinished: true,
-          timeRemaining: 3600 - session.timeTaken,
+          timeRemaining: 3600 - (session.timeTaken || 0),
           flaggedQuestions: []
         });
         setIsViewingPastReport(true);
@@ -812,15 +826,21 @@ export default function App() {
   }, []);
 
   const handleAddCompany = React.useCallback((company: string) => {
-    if (user && userProfile) {
+    if (userProfile) {
       const updatedProfile = {
         ...userProfile,
         customCompanies: Array.from(new Set([...(userProfile.customCompanies || []), company]))
       };
       setUserProfile(updatedProfile);
-      setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
-        console.error("Failed to add custom company", err);
-      });
+      try { localStorage.setItem('smartprep_profile', JSON.stringify(updatedProfile)); } catch {}
+      if (user && canWriteToFirestore()) {
+        setDoc(doc(db, 'profiles', user.uid), updatedProfile).catch((err) => {
+          console.warn("Failed to add custom company to cloud", err);
+          if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+            markFirestoreQuotaExceeded();
+          }
+        });
+      }
     }
   }, [user, userProfile]);
 

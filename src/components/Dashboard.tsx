@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Markdown from 'react-markdown';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded, FIRESTORE_DATABASE_UPGRADE_URL, FIRESTORE_PRICING_URL } from '../lib/firebase';
+import { getLocalQuizSessions } from './ReportScreen';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
-import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star, Sparkles } from 'lucide-react';
+import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star, Sparkles, Database, ExternalLink, X, CheckCircle2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO, isSameDay, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,11 +25,12 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool, onViewReport, onOpenStudyHub, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
-  const [sessions, setSessions] = useState<QuizSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<QuizSession[]>(() => getLocalQuizSessions());
+  const [loading, setLoading] = useState(false);
   const [isFetchingTips, setIsFetchingTips] = useState(false);
   const [studyTips, setStudyTips] = useState<string | null>(null);
   const [activityTab, setActivityTab] = useState<'history' | 'badges'>('history');
+  const [showQuotaBanner, setShowQuotaBanner] = useState(true);
 
   const fetchStudyTips = async () => {
     setIsFetchingTips(true);
@@ -50,6 +52,12 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
   };
 
   useEffect(() => {
+    // Initial local sessions fallback
+    const local = getLocalQuizSessions();
+    if (local.length > 0) {
+      setSessions(local);
+    }
+
     if (!auth.currentUser) return;
 
     const q = query(
@@ -61,19 +69,30 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
     let unsubscribe: () => void;
     
     unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
+      const cloudData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as QuizSession[];
-      setSessions(data);
+
+      // Merge cloud data with locally stored sessions (local sessions have prefix 'local_')
+      const merged = [...cloudData];
+      const localSessions = getLocalQuizSessions();
+      for (const loc of localSessions) {
+        const alreadyInCloud = merged.some(m => m.id === loc.id || (m.createdAt && new Date(m.createdAt).getTime() === new Date(loc.createdAt).getTime()));
+        if (!alreadyInCloud) {
+          merged.push(loc);
+        }
+      }
+      merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setSessions(merged);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching sessions:", error);
+      console.warn("Unable to sync sessions from cloud; using local offline storage:", error);
       try {
         handleFirestoreError(error, OperationType.LIST, 'quizSessions');
       } catch (e: any) {
-        console.error("Dashboard Quota/Firestore Error:", e.message);
+        // Quota or network error handled gracefully
       }
       setLoading(false);
     });
@@ -264,7 +283,56 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
       </div>
 
-      {errorMessage && (
+      {isFirestoreQuotaExceeded && showQuotaBanner && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 sm:p-5 relative shadow-xs">
+          <button
+            onClick={() => setShowQuotaBanner(false)}
+            aria-label="Dismiss banner"
+            className="absolute top-3.5 right-3.5 p-1 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-start space-x-3.5 pr-6">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-xl shrink-0 mt-0.5">
+              <Database className="w-5 h-5" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-800/40 text-amber-800 dark:text-amber-300">
+                  Offline Mode Active
+                </span>
+                <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Daily Cloud Write Quota Reached</span>
+              </div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                The free daily write limit for this Firestore project database has been reached. <strong>Your assessments, scores, answers, and study progress are safely preserved locally on this device</strong>. Cloud database synchronization will resume automatically when limits reset tomorrow.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
+                <a
+                  href={FIRESTORE_DATABASE_UPGRADE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 font-semibold text-amber-800 dark:text-amber-300 hover:underline"
+                >
+                  <span>Open Firebase Upgrade / Quota Settings</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <span className="text-slate-400 dark:text-slate-600">•</span>
+                <a
+                  href={FIRESTORE_PRICING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1 font-medium text-slate-600 dark:text-slate-400 hover:underline"
+                >
+                  <span>Firebase Spark Pricing & Limits</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {errorMessage && !errorMessage.includes("quota") && !errorMessage.includes("Quota") && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-2xl flex items-start space-x-3 border border-red-100 dark:border-red-900/30">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <p className="text-sm font-medium leading-relaxed">{errorMessage}</p>

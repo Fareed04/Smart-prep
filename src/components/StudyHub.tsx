@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType, isFirestoreQuotaExceeded, canWriteToFirestore, markFirestoreQuotaExceeded } from '../lib/firebase';
 import { StudyGuide, QuizSession } from '../types';
+import { getLocalQuizSessions } from './ReportScreen';
 import { BookOpen, AlertCircle, Plus, ChevronLeft, Trash2, FileText, Loader2, Upload, LayoutList, Trophy, RefreshCw, ArrowRight, ArrowLeft, Layers, Calendar as CalendarIcon, Star, Sparkles, Type, Volume2, Maximize2, Minimize2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, subMonths, addMonths, startOfWeek, endOfWeek, isToday } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -19,8 +20,15 @@ interface StudyHubProps {
 }
 
 export function StudyHub({ user, pool, onBack }: StudyHubProps) {
-  const [guides, setGuides] = useState<StudyGuide[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [guides, setGuides] = useState<StudyGuide[]>(() => {
+    try {
+      const raw = localStorage.getItem('smartprep_local_study_guides');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [viewingGuide, setViewingGuide] = useState<StudyGuide | null>(null);
@@ -40,7 +48,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   const [flashcardIndex, setFlashcardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const [sessions, setSessions] = useState<QuizSession[]>([]);
+  const [sessions, setSessions] = useState<QuizSession[]>(() => getLocalQuizSessions());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const contentPaneRef = React.useRef<HTMLDivElement>(null);
 
@@ -237,15 +245,25 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as StudyGuide[];
-      setGuides(data);
+
+      const mergedGuides = [...data];
+      try {
+        const raw = localStorage.getItem('smartprep_local_study_guides');
+        const localGuides: StudyGuide[] = raw ? JSON.parse(raw) : [];
+        for (const lg of localGuides) {
+          if (!mergedGuides.some(g => g.id === lg.id)) {
+            mergedGuides.push(lg);
+          }
+        }
+      } catch {}
+      setGuides(mergedGuides);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching study guides:", error);
+      console.warn("Error fetching study guides from cloud; using local cache:", error);
       try {
-        handleFirestoreError(error, OperationType.LIST, 'studyGuides');
-      } catch (err: any) {
-        setError(err.message);
-      }
+        const raw = localStorage.getItem('smartprep_local_study_guides');
+        if (raw) setGuides(JSON.parse(raw));
+      } catch {}
       setLoading(false);
       if (unsubscribeGuides) unsubscribeGuides();
     });
@@ -256,9 +274,18 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as QuizSession[];
-      setSessions(data);
+
+      const local = getLocalQuizSessions();
+      const combined = [...data];
+      for (const loc of local) {
+        if (!combined.some(c => c.id === loc.id)) {
+          combined.push(loc);
+        }
+      }
+      setSessions(combined);
     }, (error) => {
-      console.error("Error fetching sessions:", error);
+      console.warn("Using local sessions in StudyHub:", error);
+      setSessions(getLocalQuizSessions());
     });
 
     return () => {
@@ -273,33 +300,49 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
       return;
     }
 
-    if (isFirestoreQuotaExceeded) {
-      setError("Database quota exceeded. You cannot save new study guides to the cloud at this time.");
-      return;
-    }
-
     setIsGenerating(true);
     setError(null);
 
     try {
       const generatedContent = await generateStudyGuide(newCategory, pdfFile);
       
-      await addDoc(collection(db, 'studyGuides'), {
+      const newGuide: StudyGuide = {
+        id: 'local_guide_' + Date.now().toString(),
         userId: user.uid,
         title: newTitle.trim(),
         category: newCategory,
         content: generatedContent,
-        createdAt: serverTimestamp()
-      });
+        createdAt: new Date()
+      };
+
+      try {
+        const raw = localStorage.getItem('smartprep_local_study_guides');
+        const currentList: StudyGuide[] = raw ? JSON.parse(raw) : [];
+        currentList.unshift(newGuide);
+        localStorage.setItem('smartprep_local_study_guides', JSON.stringify(currentList));
+      } catch {}
+
+      if (canWriteToFirestore()) {
+        await addDoc(collection(db, 'studyGuides'), {
+          userId: user.uid,
+          title: newTitle.trim(),
+          category: newCategory,
+          content: generatedContent,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      setGuides(prev => [newGuide, ...prev.filter(g => g.id !== newGuide.id)]);
       setIsCreating(false);
       setNewTitle('');
       setPdfFile(null);
     } catch (e: any) {
       console.error(e);
-      try {
-        handleFirestoreError(e, OperationType.WRITE, 'studyGuides');
-      } catch (err: any) {
-        setError(err.message);
+      const errStr = e?.message || e?.code || '';
+      if (errStr.includes('Quota') || errStr.includes('resource-exhausted')) {
+        markFirestoreQuotaExceeded();
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to create study guide.");
       }
     } finally {
       setIsGenerating(false);
@@ -309,16 +352,22 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   const handleDelete = async (guideId: string) => {
     if (confirm("Are you sure you want to delete this study guide?")) {
       try {
-        await deleteDoc(doc(db, 'studyGuides', guideId));
-        if (viewingGuide && viewingGuide.id === guideId) {
-          setViewingGuide(null);
+        const raw = localStorage.getItem('smartprep_local_study_guides');
+        if (raw) {
+          const list: StudyGuide[] = JSON.parse(raw);
+          localStorage.setItem('smartprep_local_study_guides', JSON.stringify(list.filter(g => g.id !== guideId)));
         }
-      } catch (e) {
-        console.error(e);
+      } catch {}
+      setGuides(prev => prev.filter(g => g.id !== guideId));
+      if (viewingGuide && viewingGuide.id === guideId) {
+        setViewingGuide(null);
+      }
+
+      if (canWriteToFirestore() && !guideId.startsWith('local_guide_')) {
         try {
-          handleFirestoreError(e, OperationType.DELETE, `studyGuides/${guideId}`);
-        } catch (err: any) {
-          setError(err.message);
+          await deleteDoc(doc(db, 'studyGuides', guideId));
+        } catch (e) {
+          console.warn("Cloud delete skipped:", e);
         }
       }
     }

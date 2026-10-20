@@ -12,7 +12,7 @@ import { cn } from '../lib/utils';
 import { zenAudio, SoundscapeType } from '../lib/zenAudio';
 import { Calculator } from './Calculator';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded, canWriteToFirestore, markFirestoreQuotaExceeded } from '../lib/firebase';
 import { generateAdaptiveQuestion } from '../lib/gemini';
 
 interface QuizScreenProps {
@@ -163,20 +163,20 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
   useEffect(() => {
     const saveProgress = async () => {
       const currentUser = auth.currentUser;
-      if (!currentUser || isFinishing || stateRef.current.isFinished || isFirestoreQuotaExceeded) return;
+      if (!currentUser || isFinishing || stateRef.current.isFinished || !canWriteToFirestore()) return;
       try {
         await updateDoc(doc(db, 'questionPools', currentUser.uid), {
            activeSession: JSON.stringify(stateRef.current)
         });
         setShowSyncToast(true);
         setTimeout(() => setShowSyncToast(false), 2000);
-      } catch (error) {
-        console.error("Failed to auto-save progress", error);
-        try {
-          handleFirestoreError(error, OperationType.UPDATE, `questionPools/${currentUser.uid}`);
-        } catch (e) {
-          console.error("Critical Firestore Error during auto-save:", e);
+      } catch (error: any) {
+        const errStr = error?.message || error?.code || '';
+        if (errStr.includes('Quota') || errStr.includes('resource-exhausted') || errStr.includes('quota')) {
+          markFirestoreQuotaExceeded();
+          return;
         }
+        console.warn("Auto-save to cloud failed; local backup active:", error);
       }
     };
     

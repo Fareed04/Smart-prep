@@ -3,10 +3,35 @@ import { Trophy, Target, AlertCircle, RotateCcw, CheckCircle2, Zap, Download, Cl
 import { QuizState } from '../types';
 import confetti from 'canvas-confetti';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType, canWriteToFirestore, isFirestoreQuotaExceeded, markFirestoreQuotaExceeded } from '../lib/firebase';
 import { cn } from '../lib/utils';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
+
+export const STORAGE_KEY_LOCAL_SESSIONS = 'smartprep_local_sessions';
+
+export function saveLocalQuizSession(session: any) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_LOCAL_SESSIONS);
+    const list: any[] = raw ? JSON.parse(raw) : [];
+    const exists = list.some(s => s.id === session.id || (s.createdAt && new Date(s.createdAt).getTime() === new Date(session.createdAt).getTime()));
+    if (!exists) {
+      list.unshift(session);
+      localStorage.setItem(STORAGE_KEY_LOCAL_SESSIONS, JSON.stringify(list.slice(0, 50)));
+    }
+  } catch (e) {
+    console.warn("Failed to save local session", e);
+  }
+}
+
+export function getLocalQuizSessions(): any[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_LOCAL_SESSIONS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 interface ReportScreenProps {
   state: QuizState;
@@ -23,6 +48,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   const timeTaken = (60 * 60) - state.timeRemaining;
   const [isSaved, setIsSaved] = useState(isViewingPastReport);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isLocalOnlySave, setIsLocalOnlySave] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -41,38 +67,63 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
       });
     }
 
-    // Save to Firestore
+    // Save session: Always save locally first so user data is never lost
     const saveSession = async () => {
-      if (!auth.currentUser || isSaved || isViewingPastReport || saveInProgress.current) return;
-      
+      if (isSaved || isViewingPastReport || saveInProgress.current) return;
       saveInProgress.current = true;
-      try {
-        const categories = Array.from(new Set(state.questions.map(q => q.category)));
-        
-        await addDoc(collection(db, 'quizSessions'), {
-          userId: auth.currentUser.uid,
-          score,
-          correctAnswers,
-          totalQuestions,
-          timeTaken,
-          categoriesAttempted: categories,
-          company: company || 'All',
-          questions: JSON.stringify(state.questions),
-          answers: JSON.stringify(state.answers),
-          isPracticeMode: state.isPracticeMode || false,
-          isMockAssessment: !state.isPracticeMode && state.questions.length >= 10,
-          isAdaptive: !!state.isAdaptive,
-          createdAt: serverTimestamp()
-        });
-        setIsSaved(true);
-        setSaveError(null);
-      } catch (error) {
-        console.error("Error saving quiz session:", error);
-        saveInProgress.current = false;
+      
+      const categories = Array.from(new Set(state.questions.map(q => q.category)));
+      const localId = 'local_' + (state.sessionId || Date.now().toString());
+      
+      const sessionData = {
+        id: localId,
+        userId: auth.currentUser?.uid || 'guest',
+        score,
+        correctAnswers,
+        totalQuestions,
+        timeTaken,
+        categoriesAttempted: categories,
+        company: company || 'All',
+        questions: JSON.stringify(state.questions),
+        answers: JSON.stringify(state.answers),
+        isPracticeMode: state.isPracticeMode || false,
+        isMockAssessment: !state.isPracticeMode && state.questions.length >= 10,
+        isAdaptive: !!state.isAdaptive,
+        createdAt: new Date()
+      };
+
+      // Guaranteed local persistence
+      saveLocalQuizSession(sessionData);
+      setIsSaved(true);
+
+      // Cloud sync attempt if permitted
+      if (auth.currentUser && canWriteToFirestore()) {
         try {
-          handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
-        } catch (e: any) {
-          setSaveError(e.message);
+          await addDoc(collection(db, 'quizSessions'), {
+            ...sessionData,
+            createdAt: serverTimestamp()
+          });
+          setSaveError(null);
+          setIsLocalOnlySave(false);
+        } catch (error: any) {
+          console.warn("Cloud save was skipped or failed; data remains intact locally:", error);
+          saveInProgress.current = false;
+          const errStr = error?.message || error?.code || '';
+          if (errStr.includes('Quota') || errStr.includes('resource-exhausted')) {
+            markFirestoreQuotaExceeded();
+            setIsLocalOnlySave(true);
+            setSaveError(null);
+          } else {
+            try {
+              handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
+            } catch (e: any) {
+              setSaveError(e.message);
+            }
+          }
+        }
+      } else {
+        if (isFirestoreQuotaExceeded) {
+          setIsLocalOnlySave(true);
         }
       }
     };
@@ -81,7 +132,11 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   }, [score, correctAnswers, totalQuestions, timeTaken, state.questions, isSaved, isViewingPastReport, company, state.isPracticeMode, state.isAdaptive, state.answers]);
 
   const handleRetrySave = async () => {
-    if (!auth.currentUser || isSaved || isViewingPastReport || saveInProgress.current) return;
+    if (!auth.currentUser || isViewingPastReport || saveInProgress.current) return;
+    if (!canWriteToFirestore()) {
+      setIsLocalOnlySave(true);
+      return;
+    }
     saveInProgress.current = true;
     setSaveError(null);
     try {
@@ -102,14 +157,22 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
         createdAt: serverTimestamp()
       });
       setIsSaved(true);
+      setIsLocalOnlySave(false);
       setSaveError(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving quiz session on retry:", error);
       saveInProgress.current = false;
-      try {
-        handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
-      } catch (e: any) {
-        setSaveError(e.message);
+      const errStr = error?.message || error?.code || '';
+      if (errStr.includes('Quota') || errStr.includes('resource-exhausted')) {
+        markFirestoreQuotaExceeded();
+        setIsLocalOnlySave(true);
+        setSaveError(null);
+      } else {
+        try {
+          handleFirestoreError(error, OperationType.WRITE, 'quizSessions');
+        } catch (e: any) {
+          setSaveError(e.message);
+        }
       }
     }
   };
@@ -267,17 +330,34 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           <p className="text-lg text-slate-600 dark:text-slate-400">Here's how you performed on the {company && company !== 'All' ? `${company} ` : ''}assessment.</p>
         </div>
 
-        {saveError && (
+        {isLocalOnlySave && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 p-4 rounded-xl flex items-center justify-between gap-3">
+            <div className="flex items-start space-x-3">
+              <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold">Test Results Saved Locally</p>
+                <p className="text-xs text-blue-600/80 dark:text-blue-300/80 mt-0.5">
+                  Daily free database write quota has been reached. Your results, score, and analytics are safely stored on this device and will sync automatically once quota resets tomorrow.
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-blue-100 dark:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-md text-xs font-semibold shrink-0">
+              Offline Saved
+            </span>
+          </div>
+        )}
+
+        {saveError && !isLocalOnlySave && (
           <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 p-4 rounded-xl flex items-center justify-between gap-3">
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <p className="text-sm">Warning: {saveError} (Your results are shown below but could not be auto-saved).</p>
+              <p className="text-sm">Notice: {saveError} (Saved locally, but cloud sync failed).</p>
             </div>
             <button
               onClick={handleRetrySave}
               className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors"
             >
-              Retry Save
+              Retry Sync
             </button>
           </div>
         )}
