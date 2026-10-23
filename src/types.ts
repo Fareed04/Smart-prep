@@ -76,3 +76,58 @@ export interface StudyGuide {
   content: string;
   createdAt: Date;
 }
+
+export interface CompanyValue {
+  value: string;
+  explanation: string;
+  interviewAdvice: string;
+}
+
+export interface CompanyNewsItem {
+  headline: string;
+  summary: string;
+  relevanceToCandidate: string;
+  dateOrContext?: string;
+}
+
+export interface CompanyPitch {
+  angle: string;
+  pitch: string;
+}
+
+export interface ReverseQuestion {
+  question: string;
+  contextWhyToAsk: string;
+}
+
+export interface CompanyQuizQuestion {
+  question: string;
+  options: string[];
+  answer: string;
+  explanation: string;
+}
+
+export interface CompanyDossier {
+  id: string;
+  companyName: string;
+  tagline: string;
+  industry: string;
+  headquarters: string;
+  founded: string;
+  ceoOrLeadership: string;
+  overview: string;
+  divisions: string[];
+  marketPosition: string;
+  coreValues: CompanyValue[];
+  recentDevelopments: CompanyNewsItem[];
+  whyThisCompanyPitches: CompanyPitch[];
+  smartReverseQuestions: ReverseQuestion[];
+  assessmentStyle: {
+    testProvider: string;
+    stages: string[];
+    tipsForSuccess: string;
+  };
+  miniQuiz: CompanyQuizQuestion[];
+  sources?: string[];
+  savedAt: string;
+}

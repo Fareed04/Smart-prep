@@ -7,18 +7,19 @@ import { ReportScreen } from './components/ReportScreen';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { StudyHub } from './components/StudyHub';
+import { CompanyIntel } from './components/CompanyIntel';
 import { extractQuestionsFromFiles, generateQuizFromPool, deduplicateQuestions, generateMockAssessment, migrateLegacyQuestions } from './lib/gemini';
 import { QuizState, Question, QuestionProgress, UserProfile } from './types';
 import { auth, logOut, db, handleFirestoreError, OperationType, onFirestoreQuotaStateChange, isFirestoreQuotaExceeded, markFirestoreQuotaExceeded, canWriteToFirestore } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, increment, deleteField } from 'firebase/firestore';
-import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2, Sparkles } from 'lucide-react';
+import { LogOut, LayoutDashboard, BookOpen, Trophy, Battery, BatteryCharging, BatteryFull, BatteryMedium, BatteryLow, BatteryWarning, CheckCircle2, Sparkles, Building2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from './lib/utils';
 import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
 
-type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study';
+type AppState = 'login' | 'dashboard' | 'upload' | 'processing' | 'ready' | 'quiz' | 'report' | 'study' | 'company_intel';
 
 const STORAGE_KEY_STATE = 'smartprep_quiz_state';
 const STORAGE_KEY_POOL = 'smartprep_question_pool';
@@ -62,6 +63,7 @@ export default function App() {
   const [isZenMode, setIsZenMode] = useState<boolean>(() => {
     return localStorage.getItem('smartprep_zen_quiz_mode') !== 'false';
   });
+  const [intelCompany, setIntelCompany] = useState<string>('KPMG');
 
   useEffect(() => {
     localStorage.setItem('smartprep_zen_quiz_mode', String(isZenMode));
@@ -885,6 +887,21 @@ export default function App() {
                 </div>
               )}
 
+              {/* Organization Background Research Button */}
+              <button
+                onClick={() => setAppState('company_intel')}
+                className={cn(
+                  "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-2xs cursor-pointer group",
+                  appState === 'company_intel'
+                    ? "bg-emerald-600 text-white border border-emerald-600"
+                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60"
+                )}
+                title="Research organization background, culture & assessment style"
+              >
+                <Building2 className={cn("w-3.5 h-3.5 group-hover:scale-110 transition-transform", appState === 'company_intel' ? "text-white" : "text-emerald-600 dark:text-emerald-400")} />
+                <span className="hidden sm:inline">Company Intel</span>
+              </button>
+
               {/* Distraction-Free Zen Quiz Mode Button */}
               <button
                 onClick={handleStartZenQuiz}
@@ -975,6 +992,10 @@ export default function App() {
               onUpgradePool={handleUpgradePool}
               onViewReport={handleViewReport}
               onOpenStudyHub={() => setAppState('study')}
+              onOpenCompanyIntel={(company) => {
+                if (company) setIntelCompany(company);
+                setAppState('company_intel');
+              }}
               onPracticeCategory={(category) => {
                 setSelectedCategory(category);
                 if (extractedPool.length > 0) {
@@ -1095,6 +1116,22 @@ export default function App() {
             onBack={() => setAppState('dashboard')}
           />
         )}
+        {appState === 'company_intel' && (
+          <CompanyIntel 
+            initialCompany={intelCompany}
+            customCompanies={userProfile?.customCompanies}
+            pool={extractedPool}
+            onBack={() => setAppState('dashboard')}
+            onPracticeCompany={(company) => {
+              setSelectedCompany(company);
+              if (extractedPool.length > 0) {
+                setAppState('ready');
+              } else {
+                setAppState('upload');
+              }
+            }}
+          />
+        )}
       </main>
 
       {appState !== 'quiz' && appState !== 'login' && (
@@ -1109,6 +1146,12 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center space-x-5">
+              <button 
+                onClick={() => setAppState('company_intel')} 
+                className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium text-emerald-700 dark:text-emerald-400"
+              >
+                Company Intel
+              </button>
               <button 
                 onClick={() => setAppState('study')} 
                 className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"

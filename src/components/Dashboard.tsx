@@ -4,7 +4,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db, auth, handleFirestoreError, OperationType, isFirestoreQuotaExceeded, FIRESTORE_DATABASE_UPGRADE_URL, FIRESTORE_PRICING_URL } from '../lib/firebase';
 import { getLocalQuizSessions } from './ReportScreen';
 import { QuizSession, Question, QuestionProgress, UserProfile } from '../types';
-import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star, Sparkles, Database, ExternalLink, X, CheckCircle2 } from 'lucide-react';
+import { Play, TrendingUp, Clock, Target, History, AlertCircle, Award, BookOpen, Flame, Zap, Trophy, Star, Sparkles, Database, ExternalLink, X, CheckCircle2, Building2, ArrowRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO, isSameDay, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,6 +17,7 @@ interface DashboardProps {
   onUpgradePool?: () => void;
   onViewReport: (session: QuizSession) => void;
   onOpenStudyHub: () => void;
+  onOpenCompanyIntel?: (company?: string) => void;
   onPracticeCategory?: (category: string) => void;
   errorMessage?: string | null;
   pool: Question[];
@@ -24,7 +25,7 @@ interface DashboardProps {
   userProfile: UserProfile | null;
 }
 
-export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool, onViewReport, onOpenStudyHub, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
+export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool, onViewReport, onOpenStudyHub, onOpenCompanyIntel, onPracticeCategory, errorMessage, pool, progress, userProfile }: DashboardProps) {
   const [sessions, setSessions] = useState<QuizSession[]>(() => getLocalQuizSessions());
   const [loading, setLoading] = useState(false);
   const [isFetchingTips, setIsFetchingTips] = useState(false);
@@ -272,6 +273,17 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
             <Sparkles className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
             <span>Zen Quiz</span>
           </button>
+
+          {onOpenCompanyIntel && (
+            <button
+              onClick={() => onOpenCompanyIntel('KPMG')}
+              className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-5 py-3 rounded-2xl font-bold transition-all border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs group"
+              title="Research organization background, culture & assessment style"
+            >
+              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span>Company Intel</span>
+            </button>
+          )}
           
           <button
             onClick={onStartNew}
@@ -353,6 +365,76 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
               <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-blue">
                 <Markdown>{studyTips}</Markdown>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Target Employer Background Research & Intelligence Dossier */}
+      {onOpenCompanyIntel && (
+        <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-indigo-950 rounded-3xl p-6 sm:p-7 text-white shadow-md border border-emerald-500/20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 -mb-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Company Background & Culture Dossier</span>
+                </span>
+                <span className="text-xs text-slate-300 font-medium">
+                  Assessment & Interview Prep Engine
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                Organization Background Research
+              </h2>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+                Most top organizations look closely to see whether you've done your homework on their business model, values, and strategic direction. Generate comprehensive intelligence reports with values fit matrices, recent 2024–2026 strategic bets, "Why Us?" talking points, and smart reverse interview questions.
+              </p>
+
+              {/* Quick Preset Badges */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs text-slate-400 font-medium">Quick presets:</span>
+                {[
+                  { name: 'KPMG', label: 'KPMG' },
+                  { name: 'PwC', label: 'PwC' },
+                  { name: 'Deloitte', label: 'Deloitte' },
+                  { name: 'EY', label: 'EY' },
+                  { name: 'Goldman Sachs', label: 'Goldman Sachs' },
+                  { name: 'McKinsey', label: 'McKinsey' },
+                  { name: 'Google', label: 'Google' },
+                ].map(comp => (
+                  <button
+                    key={comp.name}
+                    onClick={() => onOpenCompanyIntel(comp.name)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-emerald-500/30 text-slate-200 hover:text-white border border-white/10 hover:border-emerald-400/40 transition-all cursor-pointer"
+                  >
+                    {comp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 lg:w-64">
+              <button
+                onClick={() => onOpenCompanyIntel('KPMG')}
+                className="w-full flex items-center justify-center space-x-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-6 py-3.5 rounded-2xl transition-all shadow-md hover:shadow-emerald-500/20 cursor-pointer text-sm"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Research KPMG</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </button>
+
+              <button
+                onClick={() => onOpenCompanyIntel()}
+                className="w-full flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 text-white font-semibold px-5 py-3 rounded-2xl transition-all border border-white/15 cursor-pointer text-xs"
+              >
+                <span>Research Custom Employer...</span>
+              </button>
             </div>
           </div>
         </div>
