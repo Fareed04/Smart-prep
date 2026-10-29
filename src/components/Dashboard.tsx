@@ -9,6 +9,8 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, parseISO,
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyRoadmap } from './StudyRoadmap';
+import { RecentSessionsList } from './RecentSessionsList';
+import { cn } from '../lib/utils';
 
 interface DashboardProps {
   onStartNew: () => void;
@@ -56,7 +58,10 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
     // Initial local sessions fallback
     const local = getLocalQuizSessions();
     if (local.length > 0) {
-      setSessions(local);
+      setSessions(local.map(loc => ({
+        ...loc,
+        createdAt: loc.createdAt ? new Date(loc.createdAt) : new Date(),
+      })));
     }
 
     if (!auth.currentUser) return;
@@ -73,16 +78,20 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
       const cloudData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : (doc.data().createdAt ? new Date(doc.data().createdAt) : new Date()),
       })) as QuizSession[];
 
       // Merge cloud data with locally stored sessions (local sessions have prefix 'local_')
       const merged = [...cloudData];
       const localSessions = getLocalQuizSessions();
       for (const loc of localSessions) {
-        const alreadyInCloud = merged.some(m => m.id === loc.id || (m.createdAt && new Date(m.createdAt).getTime() === new Date(loc.createdAt).getTime()));
+        const locDate = loc.createdAt ? new Date(loc.createdAt) : new Date();
+        const alreadyInCloud = merged.some(m => m.id === loc.id || (m.createdAt && new Date(m.createdAt).getTime() === locDate.getTime()));
         if (!alreadyInCloud) {
-          merged.push(loc);
+          merged.push({
+            ...loc,
+            createdAt: locDate,
+          });
         }
       }
       merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -699,111 +708,60 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
           </div>
         </div>
 
-        {/* ROW 3: Recent Activity (7 cols) & Professional Badges (5 cols) - COMPACT & BALANCED */}
-        <div className="xl:col-span-7 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col h-[300px] overflow-hidden">
-          <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <History className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Recent Simulation History</h2>
-            </div>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">
-              {sessions.length} {sessions.length === 1 ? 'Record' : 'Records'}
-            </span>
-          </div>
-
-          <div className="overflow-y-auto flex-1 p-2.5 sm:p-3 overscroll-contain-y gpu-scroll" data-lenis-prevent>
-            {loading ? (
-              <div className="h-full flex items-center justify-center text-slate-500 text-xs">Loading activity...</div>
-            ) : sessions.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2">
-                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center">
-                  <History className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm">No Simulation History Yet</h3>
-                <p className="text-[11px] text-slate-500 max-w-xs">Take your first 15-minute mock assessment or category practice to track your progress.</p>
-                <button
-                  onClick={onStartNew}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
-                >
-                  Start First Simulation
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {sessions.map((session) => (
-                  <button 
-                    key={session.id} 
-                    onClick={() => onViewReport(session)}
-                    className="w-full text-left p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700 rounded-xl transition-all flex items-center justify-between group"
-                  >
-                    <div className="space-y-1 flex-1 pr-3 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-xs text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {format(session.createdAt, 'MMM d, yyyy')}
-                        </span>
-                        {session.company && (
-                          <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">
-                            {session.company}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-slate-400">
-                          {Math.floor(session.timeTaken / 60)}m {session.timeTaken % 60}s
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 truncate">
-                        {session.categoriesAttempted.join(' · ')}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 shrink-0">
-                      <div className="text-right">
-                        <div className={`text-sm font-black ${session.score >= 70 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                          {session.score}%
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-medium">
-                          {session.correctAnswers}/{session.totalQuestions}
-                        </div>
-                      </div>
-                      <div className="px-2 py-1 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-600 group-hover:text-white dark:text-slate-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
-                        <span>Review</span>
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* ROW 3: Recent Sessions (8 cols) & Professional Badges (4 cols) */}
+        <div className="xl:col-span-8 flex flex-col justify-between">
+          <RecentSessionsList
+            sessions={sessions}
+            loading={loading}
+            onViewReport={onViewReport}
+            onStartNew={onStartNew}
+            onQuickStart={onQuickStart}
+          />
         </div>
 
-        {/* Professional Badges in Row 3 (5 cols) - MATCHING HEIGHT! */}
-        <div className="xl:col-span-5 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col h-[300px] overflow-hidden">
-          <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Award className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Achievements & Badges</h2>
+        {/* Professional Badges in Row 3 (4 cols) - BALANCED & RESPONSIVE */}
+        <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Achievements & Badges</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Milestones earned through quiz mastery</p>
+              </div>
             </div>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+            <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200/60 dark:border-blue-800/60">
               {badges.filter(b => b.active).length} / {badges.length} Unlocked
             </span>
           </div>
 
-          <div className="p-3 overflow-y-auto flex-1 overscroll-contain-y gpu-scroll" data-lenis-prevent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-2">
+          <div className="p-4 overflow-y-auto flex-1 overscroll-contain-y gpu-scroll space-y-2.5" data-lenis-prevent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2.5">
               {badges.map((badge) => (
                 <div 
                   key={badge.id}
-                  className={`p-2.5 rounded-xl border ${
+                  className={cn(
+                    "p-3 rounded-2xl border transition-all flex items-center space-x-3",
                     badge.active 
-                      ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50 shadow-xs' 
-                      : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800 grayscale opacity-50'
-                  } flex items-center space-x-2.5 transition-all`}
+                      ? "bg-blue-50/70 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/50 shadow-2xs" 
+                      : "bg-slate-50/60 dark:bg-slate-800/30 border-slate-100 dark:border-slate-800/80 opacity-60"
+                  )}
                 >
-                  <div className="text-xl shrink-0 p-1 bg-white dark:bg-slate-800 rounded-lg shadow-xs">{badge.icon}</div>
+                  <div className={cn(
+                    "text-2xl shrink-0 p-2 rounded-xl shadow-2xs",
+                    badge.active ? "bg-white dark:bg-slate-800" : "bg-slate-100 dark:bg-slate-800 grayscale"
+                  )}>
+                    {badge.icon}
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{badge.title}</div>
-                    <div className="text-[10px] text-slate-500 truncate">{badge.desc}</div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate">{badge.title}</span>
+                      {badge.active && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{badge.desc}</div>
                   </div>
                 </div>
               ))}
