@@ -581,24 +581,24 @@ export function Calculator({
       <motion.div
         drag
         dragMomentum={false}
-        className="fixed bottom-6 right-6 z-50 bg-slate-900/95 text-white dark:bg-slate-900/95 border border-slate-700/80 rounded-full shadow-2xl px-4 py-2.5 flex items-center space-x-3 backdrop-blur-md cursor-move select-none"
+        className="fixed bottom-3 sm:bottom-6 right-3 sm:right-6 z-50 bg-slate-900/95 text-white dark:bg-slate-900/95 border border-slate-700/80 rounded-full shadow-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center space-x-2 sm:space-x-3 backdrop-blur-md cursor-move select-none max-w-[calc(100vw-1.5rem)]"
       >
-        <div className="flex items-center space-x-2" onClick={() => setIsMinimized(false)}>
-          <CalcIcon className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs font-semibold text-slate-300">Calc:</span>
-          <span className="font-mono text-sm font-bold text-white max-w-[130px] truncate">{display}</span>
+        <div className="flex items-center space-x-2 min-w-0" onClick={() => setIsMinimized(false)}>
+          <CalcIcon className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="text-xs font-semibold text-slate-300 hidden sm:inline">Calc:</span>
+          <span className="font-mono text-xs sm:text-sm font-bold text-white max-w-[100px] sm:max-w-[130px] truncate">{display}</span>
         </div>
-        <div className="flex items-center space-x-1 pl-2 border-l border-slate-700">
+        <div className="flex items-center space-x-1 pl-2 border-l border-slate-700 shrink-0">
           <button
             onClick={() => setIsMinimized(false)}
-            className="p-1 hover:text-indigo-400 text-slate-400 rounded-lg transition-colors"
+            className="p-1 hover:text-indigo-400 text-slate-400 rounded-lg transition-colors cursor-pointer"
             title="Expand Calculator"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleClose}
-            className="p-1 hover:text-rose-400 text-slate-400 rounded-lg transition-colors"
+            className="p-1 hover:text-rose-400 text-slate-400 rounded-lg transition-colors cursor-pointer"
             title="Close Calculator"
           >
             <X className="w-3.5 h-3.5" />
@@ -621,8 +621,8 @@ export function Calculator({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
       className={cn(
-        "fixed bottom-6 right-6 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.7)] border border-slate-200/90 dark:border-slate-800 overflow-hidden z-50 flex flex-col transition-[width] duration-200",
-        calcMode === 'scientific' ? "w-[360px] sm:w-[410px]" : "w-[316px] sm:w-[338px]"
+        "fixed bottom-2 sm:bottom-6 right-2 sm:right-6 left-2 sm:left-auto bg-white dark:bg-slate-900 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.7)] border border-slate-200/90 dark:border-slate-800 overflow-hidden z-50 flex flex-col transition-[width] duration-200 max-w-[calc(100vw-1rem)]",
+        calcMode === 'scientific' ? "w-full sm:w-[410px]" : "w-full sm:w-[338px]"
       )}
     >
       {/* Studio Window Chrome / Title Bar */}

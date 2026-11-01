@@ -169,14 +169,15 @@ export function CompanyIntel({
   }, [pool, dossier]);
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Top Navigation & Breadcrumbs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-5">
         <div className="flex items-center space-x-3">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+            className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             title="Return to Dashboard"
+            aria-label="Return to Dashboard"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -185,12 +186,12 @@ export function CompanyIntel({
               <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                 Commercial Awareness & Fit
               </span>
-              <span className="text-slate-400">•</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">Organization Background Research</span>
+              <span className="text-slate-400 hidden sm:inline">•</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">Organization Background Research</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center space-x-2.5">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
               <span>Company Intelligence Dossier</span>
-              <Sparkles className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-500" />
             </h1>
           </div>
         </div>
@@ -334,8 +335,11 @@ export function CompanyIntel({
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center space-x-1 sm:space-x-2 border-b border-slate-200 dark:border-slate-800 overflow-x-auto pb-2 scrollbar-none">
+          {/* Navigation Tabs (Smooth Touch Strip) */}
+          <div 
+            className="flex items-center space-x-1.5 sm:space-x-2 border-b border-slate-200 dark:border-slate-800 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 no-scrollbar touch-pan-x"
+            data-lenis-prevent
+          >
             {[
               { id: 'overview', label: 'Overview & Divisions', icon: Building2 },
               { id: 'values', label: 'Core Values & Fit', icon: Shield, badge: dossier.coreValues.length },
@@ -352,10 +356,10 @@ export function CompanyIntel({
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border",
+                    "flex items-center space-x-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border cursor-pointer min-h-[44px] sm:min-h-[38px] shrink-0",
                     isActive
                       ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-slate-800"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
                   <Icon className="w-4 h-4" />

@@ -282,7 +282,7 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={onDashboard}
@@ -362,14 +362,14 @@ export function ReportScreen({ state, onRestart, onDashboard, isViewingPastRepor
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 text-center">
             <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Final Score</div>
-            <div className="text-3xl font-bold text-slate-900 dark:text-white">{score}%</div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{score}%</div>
           </div>
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">
+          <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 text-center">
             <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Correct</div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{correctAnswers}</div>
+            <div className="text-2xl sm:text-3xl font-black text-green-600 dark:text-green-400">{correctAnswers}</div>
             <div className="text-[10px] text-slate-500 dark:text-slate-400">/{totalQuestions}</div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center">

@@ -132,40 +132,50 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
     }
 
     return (
-      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <CalendarIcon className="w-6 h-6 text-indigo-500" />
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-500" />
               <span>Focus Calendar</span>
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">
               Track your mock assessment completion history.
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <button onClick={prevMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <div className="flex items-center space-x-3 sm:space-x-4 self-center sm:self-auto">
+            <button 
+              onClick={prevMonth} 
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Previous month"
+            >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <span className="text-lg font-bold text-slate-800 dark:text-slate-200 min-w-[120px] text-center">
+            <span className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200 min-w-[130px] text-center">
               {format(monthStart, "MMMM yyyy")}
             </span>
-            <button onClick={nextMonth} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <button 
+              onClick={nextMonth} 
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Next month"
+            >
               <ChevronLeft className="w-5 h-5 rotate-180 text-slate-600 dark:text-slate-400" />
             </button>
           </div>
         </div>
 
-        <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-          <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="p-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {d}
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-col">
-            {rows}
+        <div className="overflow-x-auto no-scrollbar -mx-2 sm:mx-0 px-2 sm:px-0" data-lenis-prevent>
+          <div className="min-w-[480px] border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                <div key={d} className="p-2 sm:p-3 text-center text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col">
+              {rows}
+            </div>
           </div>
         </div>
       </div>
@@ -396,7 +406,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
 
   if (viewingGuide) {
     return (
-      <div className={cn("mx-auto p-4 sm:p-6 space-y-6 animate-in fade-in", isZenReader ? "max-w-3xl" : "max-w-7xl")}>
+      <div className={cn("mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-6 animate-in fade-in", isZenReader ? "max-w-3xl" : "max-w-7xl")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button 
             onClick={() => {
@@ -687,30 +697,31 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           <button 
             onClick={onBack}
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            aria-label="Back to dashboard"
           >
             <ChevronLeft className="w-6 h-6 text-slate-600 dark:text-slate-400" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-              <BookOpen className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+              <BookOpen className="w-7 h-7 sm:w-8 h-8 text-blue-600 dark:text-blue-400 shrink-0" />
               <span>Study Hub</span>
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">Learn best practices and strategies to dominate assessments.</p>
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-0.5">Learn best practices and strategies to dominate assessments.</p>
           </div>
         </div>
         {!isCreating && (
-          <div className="flex items-center space-x-2">
-            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            <div className="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-xl max-w-full overflow-x-auto no-scrollbar" data-lenis-prevent>
               <button
                 onClick={() => setHubMode('library')}
                 className={cn(
-                  "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 min-h-[40px]",
                   hubMode === 'library' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
@@ -720,7 +731,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
               <button
                 onClick={() => setHubMode('flashcards')}
                 className={cn(
-                  "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 min-h-[40px]",
                   hubMode === 'flashcards' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
@@ -730,7 +741,7 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
               <button
                 onClick={() => setHubMode('calendar')}
                 className={cn(
-                  "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 min-h-[40px]",
                   hubMode === 'calendar' ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
@@ -742,10 +753,10 @@ export function StudyHub({ user, pool, onBack }: StudyHubProps) {
             {hubMode === 'library' && (
                <button
                  onClick={() => setIsCreating(true)}
-                 className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md"
+                 className="flex items-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-md min-h-[44px] shrink-0"
                >
                  <Plus className="w-5 h-5" />
-                 <span className="hidden sm:inline">New Guide</span>
+                 <span className="inline">New Guide</span>
                </button>
             )}
           </div>

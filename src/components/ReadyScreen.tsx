@@ -65,31 +65,31 @@ export function ReadyScreen({
   const poolSize = finalFilteredPool.length;
 
   return (
-    <div className="max-w-2xl mx-auto p-6 animate-in fade-in zoom-in-95 duration-500">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 text-center space-y-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full mb-2">
-          <FileText className="w-10 h-10" />
+    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6 animate-in fade-in zoom-in-95 duration-500">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-8 text-center space-y-6 sm:space-y-8">
+        <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full mb-1 sm:mb-2">
+          <FileText className="w-8 h-8 sm:w-10 sm:h-10" />
         </div>
         
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Documents Processed!</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Documents Processed!</h1>
+            <p className="text-sm sm:text-lg text-slate-600 dark:text-slate-400">
               Successfully extracted a pool of <span className="font-semibold text-slate-900 dark:text-white">{pool.length}</span> total questions.
             </p>
           </div>
 
           {companiesInPool.length > 0 && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium">
-                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium text-sm sm:text-base">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 <span>Filter by Company</span>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
                   onClick={() => setSelectedCompany('All')}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                    "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                     selectedCompany === 'All'
                       ? "bg-blue-600 border-blue-600 text-white"
                       : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -102,7 +102,7 @@ export function ReadyScreen({
                     key={company}
                     onClick={() => setSelectedCompany(company)}
                     className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                      "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                       selectedCompany === company
                         ? "bg-blue-600 border-blue-600 text-white"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -116,16 +116,16 @@ export function ReadyScreen({
           )}
 
           {categoriesInPool.length > 0 && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium text-sm sm:text-base">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 <span>Filter by Category</span>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
                   onClick={() => setSelectedCategory('All')}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                    "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                     selectedCategory === 'All'
                       ? "bg-blue-600 border-blue-600 text-white"
                       : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -138,7 +138,7 @@ export function ReadyScreen({
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                      "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                       selectedCategory === category
                         ? "bg-blue-600 border-blue-600 text-white"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -152,16 +152,16 @@ export function ReadyScreen({
           )}
 
           {difficultiesInPool.length > 0 && (
-            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium">
-                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-center space-x-2 text-slate-700 dark:text-slate-300 font-medium text-sm sm:text-base">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                 <span>Filter by Difficulty</span>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
                   onClick={() => setSelectedDifficulty('All')}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                    "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                     selectedDifficulty === 'All'
                       ? "bg-blue-600 border-blue-600 text-white"
                       : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -174,7 +174,7 @@ export function ReadyScreen({
                     key={diff}
                     onClick={() => setSelectedDifficulty(diff)}
                     className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-medium transition-all border-2",
+                      "px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border-2 cursor-pointer",
                       selectedDifficulty === diff
                         ? "bg-blue-600 border-blue-600 text-white"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-400"
@@ -187,26 +187,26 @@ export function ReadyScreen({
             </div>
           )}
           
-          <div className="flex items-center justify-center space-x-4 py-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:space-x-4 py-2">
             <button 
               onClick={() => setMasteryMode(true)}
               className={cn(
-                "flex-1 p-4 rounded-2xl border-2 transition-all text-left",
+                "flex-1 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left cursor-pointer",
                 masteryMode ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'
               )}
             >
-              <div className="font-bold text-slate-900 dark:text-white">Mastery Mode</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Prioritizes unmastered questions to help you memorize the entire pool.</div>
+              <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Mastery Mode</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Prioritizes unmastered questions to help you memorize the entire pool.</div>
             </button>
             <button 
               onClick={() => setMasteryMode(false)}
               className={cn(
-                "flex-1 p-4 rounded-2xl border-2 transition-all text-left",
+                "flex-1 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left cursor-pointer",
                 !masteryMode ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'
               )}
             >
-              <div className="font-bold text-slate-900 dark:text-white">Standard Mode</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Random selection from the pool for a standard simulation.</div>
+              <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Standard Mode</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Random selection from the pool for a standard simulation.</div>
             </button>
           </div>
 

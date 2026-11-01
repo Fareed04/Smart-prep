@@ -242,65 +242,71 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Ready to continue your preparation?</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-          {userProfile && (
-            <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-              <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <Flame className={`w-5 h-5 ${userProfile.streak > 0 ? 'text-orange-500' : 'text-slate-400'}`} />
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+          {/* User Streak & Level Pills */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {userProfile && (
+              <div className="flex-1 sm:flex-initial flex items-center space-x-2 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800">
+                <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg shrink-0">
+                  <Flame className={`w-4 h-4 sm:w-5 sm:h-5 ${userProfile.streak > 0 ? 'text-orange-500' : 'text-slate-400'}`} />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{userProfile.streak} Day Streak</div>
+                </div>
               </div>
-              <div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white">{userProfile.streak} Day Streak</div>
+            )}
+
+            {userProfile && (
+              <div className="flex-1 sm:flex-initial flex items-center space-x-2 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800">
+                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
+                  <Award className={`w-4 h-4 sm:w-5 sm:h-5 ${getRankColor(userProfile.level)}`} />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{getRank(userProfile.level)}</div>
+                  <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 uppercase tracking-wider">Level {userProfile.level}</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {userProfile && (
-            <div className="flex items-center space-x-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Award className={`w-5 h-5 ${getRankColor(userProfile.level)}`} />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white">{getRank(userProfile.level)}</div>
-                <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Level {userProfile.level}</div>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={onQuickStart}
-            className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-5 py-3 rounded-2xl font-bold transition-all border border-slate-200 dark:border-slate-700"
-          >
-            <Zap className="w-5 h-5 text-amber-500 fill-current" />
-            <span>Quick 15 Qs</span>
-          </button>
-
-          <button
-            onClick={onStartZen ? onStartZen : onStartNew}
-            className="flex items-center space-x-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-5 py-3 rounded-2xl font-bold transition-all border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs group"
-            title="Start a distraction-free Zen Assessment"
-          >
-            <Sparkles className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" />
-            <span>Zen Quiz</span>
-          </button>
-
-          {onOpenCompanyIntel && (
+          {/* Action Buttons Matrix: 2x2 grid on mobile phones, inline row on larger viewports */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
-              onClick={() => onOpenCompanyIntel('KPMG')}
-              className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-5 py-3 rounded-2xl font-bold transition-all border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs group"
-              title="Research organization background, culture & assessment style"
+              onClick={onQuickStart}
+              className="flex items-center justify-center space-x-1.5 sm:space-x-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-bold transition-all border border-slate-200 dark:border-slate-700 text-xs sm:text-sm cursor-pointer min-h-[44px]"
             >
-              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span>Company Intel</span>
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-current shrink-0" />
+              <span>Quick 15 Qs</span>
             </button>
-          )}
-          
-          <button
-            onClick={onStartNew}
-            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-sm hover:shadow group"
-          >
-            <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>New Simulation</span>
-          </button>
+
+            <button
+              onClick={onStartZen ? onStartZen : onStartNew}
+              className="flex items-center justify-center space-x-1.5 sm:space-x-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-bold transition-all border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs group text-xs sm:text-sm cursor-pointer min-h-[44px]"
+              title="Start a distraction-free Zen Assessment"
+            >
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:scale-110 transition-transform shrink-0" />
+              <span>Zen Quiz</span>
+            </button>
+
+            {onOpenCompanyIntel && (
+              <button
+                onClick={() => onOpenCompanyIntel('KPMG')}
+                className="flex items-center justify-center space-x-1.5 sm:space-x-2 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-2xl font-bold transition-all border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs group text-xs sm:text-sm cursor-pointer min-h-[44px]"
+                title="Research organization background, culture & assessment style"
+              >
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+                <span>Company Intel</span>
+              </button>
+            )}
+            
+            <button
+              onClick={onStartNew}
+              className="flex items-center justify-center space-x-1.5 sm:space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-bold transition-all shadow-sm hover:shadow group text-xs sm:text-sm cursor-pointer min-h-[44px]"
+            >
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform shrink-0" />
+              <span>New Simulation</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -449,11 +455,11 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
       )}
 
-      {/* BALANCED BENTO GRID: Rows designed to avoid dangling columns or bottom void */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
+      {/* BALANCED BENTO GRID: Rows designed to avoid dangling columns or bottom void across tablet, laptop and ultrawide viewports */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8">
         
         {/* ROW 1: Hero Roadmap (8 cols) & Daily Goal + Progression (4 cols) */}
-        <div className="xl:col-span-8 flex flex-col justify-between">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col justify-between">
           <StudyRoadmap
             pool={pool}
             progress={progress}
@@ -464,7 +470,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
           />
         </div>
 
-        <div className="xl:col-span-4 space-y-6 flex flex-col justify-between">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-5 lg:space-y-6 flex flex-col justify-between">
           {/* Daily Goal Card */}
           {userProfile && (
             <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
@@ -587,7 +593,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
 
         {/* ROW 2: Stats & Performance Trends (8 cols) & Monthly Streak Calendar (4 cols) */}
-        <div className="xl:col-span-8 space-y-4 flex flex-col justify-between">
+        <div className="lg:col-span-7 xl:col-span-8 space-y-4 flex flex-col justify-between">
           {/* Stats Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 flex items-center space-x-3">
@@ -654,7 +660,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
 
         {/* Streak Calendar in Row 2 (Right side) */}
-        <div className="xl:col-span-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+        <div className="lg:col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
               <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />
@@ -709,7 +715,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
 
         {/* ROW 3: Recent Sessions (8 cols) & Professional Badges (4 cols) */}
-        <div className="xl:col-span-8 flex flex-col justify-between">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col justify-between">
           <RecentSessionsList
             sessions={sessions}
             loading={loading}
@@ -720,7 +726,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
         </div>
 
         {/* Professional Badges in Row 3 (4 cols) - BALANCED & RESPONSIVE */}
-        <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+        <div className="lg:col-span-5 xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
           <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 shrink-0 flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
@@ -737,7 +743,7 @@ export function Dashboard({ onStartNew, onQuickStart, onStartZen, onUpgradePool,
           </div>
 
           <div className="p-4 overflow-y-auto flex-1 overscroll-contain-y gpu-scroll space-y-2.5" data-lenis-prevent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1 gap-2.5">
               {badges.map((badge) => (
                 <div 
                   key={badge.id}

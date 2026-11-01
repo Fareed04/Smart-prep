@@ -780,19 +780,19 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                   <div 
                     ref={passageRef}
                     className={cn(
-                      "w-full lg:w-1/2 flex flex-col min-h-0 overflow-y-auto p-4 sm:p-6 custom-scrollbar overscroll-contain-y transition-colors",
+                      "w-full lg:w-1/2 flex flex-col min-h-0 max-lg:max-h-[35vh] overflow-y-auto p-3.5 sm:p-6 custom-scrollbar overscroll-contain-y transition-colors",
                       themeClasses.paneBg
                     )}
                     data-lenis-prevent
                   >
-                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800/60 shrink-0">
+                    <div className="flex items-center justify-between pb-2 mb-2 sm:mb-3 border-b border-slate-800/60 shrink-0">
                       <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">Reference Passage</span>
                       <span className="text-[11px] text-slate-500 font-mono">
                         {currentQuestion.passage.split(/\s+/).length} words
                       </span>
                     </div>
                     <div className={cn(
-                      "prose prose-invert max-w-none prose-p:my-2 leading-relaxed text-slate-200",
+                      "prose prose-invert max-w-none prose-p:my-1.5 sm:prose-p:my-2 leading-relaxed text-slate-200",
                       zenFontSize === 'xl' ? "text-base sm:text-lg" : zenFontSize === 'large' ? "text-sm sm:text-base" : "text-xs sm:text-sm"
                     )}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>
@@ -802,11 +802,11 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                   </div>
 
                   {/* Right Pane: Question & Choices */}
-                  <div className="w-full lg:w-1/2 flex flex-col min-h-0 overflow-hidden">
+                  <div className="w-full lg:w-1/2 flex flex-col min-h-0 overflow-hidden flex-1">
                     {/* Upper: Question Stem */}
                     <div 
                       ref={questionStemRef}
-                      className="max-h-[38%] shrink-0 overflow-y-auto p-4 sm:p-5 border-b border-slate-800/80 custom-scrollbar overscroll-contain-y"
+                      className="max-h-[35%] shrink-0 overflow-y-auto p-3 sm:p-5 border-b border-slate-800/80 custom-scrollbar overscroll-contain-y"
                       data-lenis-prevent
                     >
                       <div className={cn(
@@ -820,7 +820,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                     </div>
 
                     {/* Lower: Answer Choices (Snug, Zero-Scroll) */}
-                    <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 flex flex-col justify-center space-y-2 sm:space-y-2.5 custom-scrollbar">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-2.5 sm:p-5 flex flex-col justify-center space-y-2 sm:space-y-2.5 custom-scrollbar">
                       {currentQuestion.options.map((option, i) => {
                         const isSelected = selectedOption === option;
                         let optionClass = themeClasses.optNormal;
@@ -843,7 +843,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                             onClick={() => handleOptionSelect(option)}
                             disabled={isAnswerChecked || isPaused}
                             className={cn(
-                              "w-full text-left p-3 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between group",
+                              "w-full text-left p-2.5 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between group min-h-[44px] cursor-pointer",
                               optionClass
                             )}
                           >
@@ -873,10 +873,10 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                   {/* Left Column: Question Stem & Context */}
                   <div 
                     ref={questionStemRef}
-                    className="w-full lg:w-1/2 flex flex-col justify-center p-4 sm:p-6 lg:p-8 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain-y"
+                    className="w-full lg:w-1/2 flex flex-col justify-center p-3.5 sm:p-6 lg:p-8 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain-y max-lg:max-h-[42vh]"
                     data-lenis-prevent
                   >
-                    <div className="flex items-center space-x-2 pb-2 mb-3 border-b border-slate-800/60 shrink-0">
+                    <div className="flex items-center space-x-2 pb-2 mb-2 sm:mb-3 border-b border-slate-800/60 shrink-0">
                       <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                         {currentQuestion.category}
                       </span>
@@ -915,7 +915,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                   </div>
 
                   {/* Right Column: Choices arranged for instant zero-scroll click/keyboard entry */}
-                  <div className="w-full lg:w-1/2 flex flex-col justify-center p-3 sm:p-6 min-h-0 overflow-y-auto custom-scrollbar space-y-2 sm:space-y-2.5">
+                  <div className="w-full lg:w-1/2 flex flex-col justify-center p-3 sm:p-6 min-h-0 overflow-y-auto custom-scrollbar space-y-2 sm:space-y-2.5 flex-1">
                     <div className="text-[11px] font-semibold text-slate-400 mb-1 hidden sm:block uppercase tracking-wider px-1">
                       Select Answer (Press 1-{currentQuestion.options.length} or click):
                     </div>
@@ -941,7 +941,7 @@ export function QuizScreen({ state, setState, onFinish, onLeave, isZenMode, onTo
                           onClick={() => handleOptionSelect(option)}
                           disabled={isAnswerChecked || isPaused}
                           className={cn(
-                            "w-full text-left p-3.5 sm:p-4 rounded-xl border transition-all flex items-center justify-between group",
+                            "w-full text-left p-3 sm:p-4 rounded-xl border transition-all flex items-center justify-between group min-h-[44px] cursor-pointer",
                             optionClass
                           )}
                         >

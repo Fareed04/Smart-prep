@@ -114,11 +114,11 @@ export function RecentSessionsList({
 
         {/* Filter Buttons */}
         {sessions.length > 0 && (
-          <div className="flex items-center space-x-1.5 self-start sm:self-auto bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center space-x-1 self-start sm:self-auto bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar shrink-0" data-lenis-prevent>
             <button
               onClick={() => setFilter('all')}
               className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all",
+                "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer min-h-[36px] sm:min-h-[28px] flex items-center",
                 filter === 'all'
                   ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -378,7 +378,7 @@ export function RecentSessionsList({
                     {/* Review Report Button */}
                     <button
                       onClick={() => onViewReport(session)}
-                      className="w-full sm:w-auto px-4 py-2 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-700 group-hover:text-white dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-2xs"
+                      className="w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-slate-100 group-hover:bg-blue-600 dark:bg-slate-800 dark:group-hover:bg-blue-600 text-slate-700 group-hover:text-white dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-2xs min-h-[44px] sm:min-h-[36px]"
                       title="View complete question breakdown, answer review, and explanations"
                     >
                       <span>Review</span>

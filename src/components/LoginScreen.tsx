@@ -25,11 +25,11 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
-      <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-md w-full text-center space-y-8">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-8 sm:p-6 animate-in fade-in duration-500">
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-md w-full text-center space-y-6 sm:space-y-8">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <BookOpen className="w-8 h-8 text-white" />
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
           </div>
         </div>
         
