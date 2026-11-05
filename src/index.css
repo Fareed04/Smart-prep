@@ -82,3 +82,17 @@ html {
   will-change: scroll-position;
   transform: translateZ(0);
 }
+
+/* Linear progress bar animated shimmer sweep */
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.animate-progress-shimmer {
+  animation: progressShimmer 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

@@ -1210,7 +1210,7 @@ export default function App() {
             )}
           </>
         )}
-        {(appState === 'upload' || appState === 'processing') && (
+        {appState === 'upload' && (
           <UploadScreen 
             files={files} 
             setFiles={setFiles} 
@@ -1219,10 +1219,13 @@ export default function App() {
             customCompanies={userProfile?.customCompanies}
             onAddCompany={handleAddCompany}
             errorMessage={errorMessage} 
-            isProcessing={appState === 'processing'}
+            isProcessing={false}
             processingStatus={processingStatus}
             progress={progress}
           />
+        )}
+        {appState === 'processing' && (
+          <ProcessingScreen progress={progress} status={processingStatus} />
         )}
         {appState === 'ready' && (
           <ReadyScreen 
