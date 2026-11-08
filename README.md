@@ -1,86 +1,187 @@
-# Smart-Prep: AI-Powered Assessment & Study Platform
+# Smart-Prep: High-Velocity AI Assessment & Study Intelligence Platform
 
-Smart-Prep is an intelligent, AI-powered mock assessment and study platform designed to help users prepare for corporate aptitude tests, professional certifications, and interviews. Leveraging the power of the Gemini API, the platform parses uploaded materials, dynamically generates tailored practice simulations, and creates personalized, deeply structured study guides.
+Smart-Prep is an enterprise-grade, AI-driven assessment simulation and study intelligence platform designed to accelerate candidate preparation for high-stakes corporate aptitude tests, Big 4 graduate trainee assessments (KPMG, EY, PwC, Deloitte), banking assessments, and professional certifications.
 
----
-
-## 🌟 Key Features
-
-### 🧠 AI-Powered Simulations
-- **Dynamic Generation:** Upload past questions (PDFs, images) and generate realistic mock assessments.
-- **Customized Targeting:** Tailor your simulations for specific target companies (e.g., KPMG, EY, PwC, Deloitte, or any custom company you add).
-- **Adaptive Difficulty:** Experience dynamic quizzes that match the rigor of real corporate assessments.
-
-### 📊 Personalized Dashboard
-- **Gamified Tracking:** Monitor your preparation journey with Experience Points (XP) and Mastery Progress metrics.
-- **Consistency Tracking:** Keep up your momentum with daily study streaks.
-- **Achievements:** Earn professional badges as you reach milestones and master different topics.
-
-### 📚 Interactive Study Hub
-- **Automated Study Guides:** Automatically generate deeply structured study guides from your uploaded materials or past performance.
-- **Smart Organization:** Includes Table of Contents generation for easy navigation.
-- **Knowledge Checks:** Integrated mini-quizzes generated on the fly to test comprehension of the study material as you read.
-
-### 🧮 Built-in Floating Calculator
-- **Always Accessible:** A draggable, floating calculator accessible anytime, especially useful during quantitative live quizzes.
-- **Advanced Operations:** Features standard arithmetic and unary operations (square root, square, percentage, reciprocal, negate).
-- **User-Friendly:** Includes calculation history, keyboard shortcuts, and a transparent, non-obstructive design.
-
-### 📈 Detailed Analytics & Reports
-- **Immediate Feedback:** Get comprehensive reports immediately after every simulation.
-- **Performance Breakdown:** View category-by-category breakdowns and time-taken metrics.
-- **AI Advice:** Receive targeted "Work Smarter" advice driven by AI to focus on your weak points.
-
-### ☁️ Cross-Device Sync & Session Persistence
-- **Cloud Saving:** Features Firebase Authentication and Firestore integration to securely save progress, question pools, reports, and active sessions across devices.
-- **Resume Anytime:** Leave a simulation mid-way and resume exactly where you left off, supported by local storage and cloud syncing.
+Powered by Google Gemini models (`gemini-3.8-flash`, with multi-tier fallback to `gemini-flash-latest` and `gemini-2.5-flash`), the system ingests bulk past questions from PDFs, images (OCR), Word documents, and text, deduplicating and validating them to contemporary 2026 cognitive standards to generate precision-timed mock simulations, interactive study guides, and company-specific research dossiers.
 
 ---
 
-## 🛠 Tech Stack
+## 🌟 Key System Functionalities
 
-- **Frontend:** React 18, TypeScript, Tailwind CSS, Vite
-- **UI Components:** Lucide Icons, Recharts (data visualization), Canvas Confetti (progress celebrations), React Markdown (rendering study guides), Motion/React (draggable components and animations).
-- **Backend & Database:** Firebase (Authentication & Firestore)
-- **AI Integration:** Google Gemini API (`@google/genai`) for parsing documents, generating dynamically structured mock tests, building study guides, and formulating targeted knowledge-check quizzes.
+### 1. ⚡ Zen Quiz Engine & Assessment Simulations
+- **Zero-Scroll Zen Mode**: Viewport-optimized layout designed so that every millisecond taking the quiz is utilized efficiently without vertical page scrolling.
+- **Dual Dynamic Layouts**:
+  - **Layout A (Reading Comprehension / Passage-Based)**: Side-by-side passage and question panel on desktop, scroll-isolated reference viewer on mobile devices.
+  - **Layout B (Standard Questions)**: Distraction-free, centered question stem and option matrix for Numerical, Verbal, Logical, and Situational Judgement tests.
+- **Test-Taking Toolkit**:
+  - **Option Elimination Mode (`Cmd/Ctrl+E` or button)**: Strike through unlikely choices to calculate probability and narrow down answers.
+  - **Question Flagging & Navigation**: Flag difficult questions for review; jump between questions with one click.
+  - **Keyboard Shortcuts**: Select choices with `1`-`4` or `A`-`D`, navigate with `Enter` / `N` (Next) and `P` (Previous), toggle elimination with `E`.
+  - **Mastery Mode vs. Standard Mode**: Choose between standard test simulation or mastery mode (which dynamically queues missed questions for retention reinforcement).
+  - **Pacing Timer & Warning**: Real-time timer with pulse animations when time is low to build time-management discipline.
+
+### 2. 📊 Visual Linear Progress Extraction Screen (`ProcessingScreen`)
+- **Animated Linear Progress Bar**: Real-time visual progress bar tracking multi-file document extraction and question generation.
+- **Dynamic Shimmer Sweep**: Hardware-accelerated light beam (`animate-progress-shimmer`) gliding across the gradient fill to provide continuous visual activity during heavy OCR or LLM token processing.
+- **4-Phase Extraction Milestones**:
+  1. *Ingestion & OCR* (15%): Multi-format parsing and text extraction.
+  2. *Pattern Extraction* (40%): Question stem, choices, answer key, and explanation identification.
+  3. *Deduplication & Verification* (70%): Duplicate elimination and alignment with 2026 cognitive standards.
+  4. *Finalizing Question Pool* (95%): Shuffling, categorizing, and preparing simulation pools.
+- **Live Metrics**: Tabular percentage readout (`{progress}%`) with real-time status activity stream.
+
+### 3. 🏢 Company Intelligence & Organization Research (`CompanyIntel`)
+- **Automated Background Research**: Deep-dive intelligence reports on corporate recruitment tests across major employers (Big 4, investment banks, FMCG, technology).
+- **Core Intelligence Modules**:
+  - **Assessment Provider Profile**: Test format identification (e.g., SHL, Korn Ferry, Cappfinity, Cubiks) with speed vs. accuracy weighting.
+  - **Company Pillars & Core Values**: Cultural competencies evaluated during Situational Judgement and behavioral assessments.
+  - **Representative Sample Questions**: Realistic practice questions modeled after the firm's authentic assessment style.
+  - **Preparation & Interview Strategy**: Concrete tactics to ace the firm's testing and interview stages.
+- **Export & Portability**: Download comprehensive dossiers as formatted PDF reports (`jspdf`) or copy structured summaries to the clipboard.
+- **Resilient Fallback Engine**: Built-in structured research generator ensures preparation is never interrupted by external API quotas or offline status.
+
+### 4. 🧮 Interactive Floating & Minimized Calculator (`Calculator`)
+- **Frictionless Floating Widget**: Non-obstructive draggable calculator with smooth boundary confinement.
+- **Standard & Unary Math Modes**: Basic four-function arithmetic plus square root ($\sqrt{x}$), square ($x^2$), percentage ($\%$), reciprocal ($1/x$), and negation ($\pm$).
+- **Tape / Calculation History**: Searchable history roll allowing candidates to review and recall prior calculations directly into the active display.
+- **Fluid Cross-Device Adaptation**: Desktop floating modal transitions smoothly into a compact, responsive mobile pill (`max-w-[calc(100vw-1.5rem)]`) with guaranteed touch-friendly key targets ($\ge 44\text{px}$).
+
+### 5. 📚 Interactive Study Hub (`StudyHub`)
+- **Custom AI Study Guides**: Generate comprehensive study guides across categories (*Numerical Reasoning*, *Verbal Reasoning*, *Logical / Inductive Reasoning*, *Situational Judgement (SJT)*, *General Strategy*) or from custom uploaded reference PDFs.
+- **Interactive Knowledge Checks**: Section-by-section mini-quizzes embedded directly in guides to test comprehension with immediate feedback and detailed rationale.
+- **Zen Reader Mode**: Distraction-free reading experience with adjustable font sizing (*Normal*, *Large*, *Huge*) and theme options (*Default*, *Warm Sepia*).
+- **Focus Calendar**: Integrated visual monthly calendar tracking daily assessment activity, completed mock exams, and streak consistency.
+- **3D Interactive Flashcards**: Interactive double-sided cards with flip animation, category tagging, difficulty levels (*Easy*, *Medium*, *Hard*), and click-to-reveal explanations.
+
+### 6. 📈 Dashboard & Recent Sessions Tracking (`RecentSessionsList`)
+- **Responsive Bento Dashboard**: Modular grid layout balancing daily study targets, XP level progression, streak counters, and categorical mastery stats across mobile (1-column), tablet (7:5 split), and desktop (12-column).
+- **Recent Sessions Tracker**: Searchable and filterable history of past mock exams mapping:
+  - Date and timestamp
+  - Target company or test style
+  - Accuracy percentage score
+  - Total duration / elapsed time
+  - Total questions attempted and category tags
+  - Direct one-click session review
+- **AI Study Coach**: Context-aware "Work Smarter" recommendations generated by Gemini analyzing recent test scores and pacing bottlenecks.
+
+### 7. ☁️ Hybrid Local + Cloud Resilience
+- **Firebase Firestore & Authentication**: Real-time cloud sync for user accounts, question pools, session results, and study guides.
+- **Quota-Exhaustion Protection Circuit**: Intelligent detection of Firestore write quota limits (`resource-exhausted`); automatically pivots to local cache storage (`localStorage`) so test taking, guide generation, and session reviews continue uninterrupted.
+
+### 8. 📱 Cross-Device Responsiveness
+- **Mobile Navigation Drawer**: Accessible slide-out navigation with $\ge 44\text{px}$ touch targets for rapid switching between Dashboard, Company Intel, Study Hub, and Simulations.
+- **Lenis Smooth Scroll Isolation**: Configured with `data-lenis-prevent` on horizontal filter chips, calendar tables, and tabs to prevent touch gesture conflicts.
 
 ---
 
-## 🚀 How to Use the System
+## 🔄 End-to-End System Workflows
 
-### 1. Account Creation & Dashboard Overview
-- **Sign In/Sign Up:** Launch the app and authenticate using your email and password.
-- **Explore Dashboard:** Upon logging in, you'll land on your Personalized Dashboard. Here you can view your current XP, daily streak, recent mock assessment scores, and earned badges.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        1. AUTHENTICATION & ONBOARDING                  │
+│       Sign in with Firebase Auth or continue with local state          │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        2. BENTO DASHBOARD & ROADMAP                    │
+│   Review Daily Goal, XP, Mastery Stats, Focus Calendar, Past Sessions  │
+└───────┬───────────────────────────┼───────────────────────────┬────────┘
+        │                           │                           │
+        ▼                           ▼                           ▼
+┌──────────────────┐    ┌────────────────────────┐    ┌──────────────────┐
+│   UPLOAD FILES   │    │     COMPANY INTEL      │    │    STUDY HUB     │
+│ Ingest PDFs,     │    │ Research target firm,  │    │ Generate guides, │
+│ DOCX, images     │    │ test providers (SHL),  │    │ 3D flashcards,   │
+│ & past questions │    │ export PDF dossiers    │    │ Focus Calendar   │
+└───────┬──────────┘    └────────────────────────┘    └──────────────────┘
+        │
+        ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   3. ANIMATED EXTRACTION SCREEN                        │
+│   Linear progress bar with live shimmer, OCR parsing, 4 milestones     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                       4. ASSESSMENT CONFIGURATION                      │
+│   Select category, difficulty, duration, Zen Mode, or Mastery Mode     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     5. TIMED ZEN SIMULATION (QUIZ)                     │
+│  Dual layouts (Passage vs Standard), floating calculator, elimination  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     6. COMPREHENSIVE PERFORMANCE REPORT                │
+│    Score breakdown, category analysis, question review, AI coaching    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   7. RECENT SESSIONS & ROADMAP UPDATE                  │
+│  Results synced to Dashboard Recent Sessions list, XP & badges updated │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-### 2. Uploading Study Materials
-- **Navigate to Uploads:** Click on the **Upload Files** section or the plus icon.
-- **Select Files:** Drag and drop or browse to select your source documents (PDFs, images, past questions, or syllabi).
-- **Select Target:** Choose a target company or role to contextualize the AI's generation.
-- **Process Content:** Click **Generate Mock** or **Start Processing**. The AI will read your documents and extract relevant concepts, questions, and topics.
+### Detailed Workflow Walkthrough:
 
-### 3. Using the Study Hub
-- **Access Guides:** Go to the **Study Hub** to view study materials generated from your uploads.
-- **Read & Learn:** Navigate through the dynamically generated Table of Contents to study different topics.
-- **Knowledge Checks:** Take the integrated mini-quizzes at the end of sections to test your retention.
+1. **Ingesting Past Papers & Generating a Question Pool**:
+   - Navigate to **Upload Files**.
+   - Drag and drop past assessment documents (PDF, DOCX, PNG, JPG).
+   - Select or add your target company (e.g., KPMG, EY, PwC, Deloitte, or a custom firm).
+   - Click **Process & Start Simulation**. The app transitions to the **ProcessingScreen**, displaying the animated linear progress bar as files pass through OCR, extraction, deduplication, and 2026 cognitive fact verification.
 
-### 4. Taking a Mock Assessment (Simulation)
-- **Start Simulation:** Navigate to the **Simulation** or **Quiz** section to begin a new mock test.
-- **Answer Questions:** Proceed through the generated questions. Use the **Floating Calculator** (accessible via the calculator icon at the bottom right) for quantitative problems. You can drag it around so it doesn't block the question.
-- **Pause & Resume:** Need a break? You can safely close the app; your session is automatically saved and can be resumed later.
+2. **Conducting Company Background Research**:
+   - Open **Company Intel** from the top header or mobile menu.
+   - Select a target company or type a new organization name.
+   - The AI synthesizes assessment provider details (SHL, Korn Ferry, Cappfinity), cultural evaluation pillars, sample test items, and interview strategy.
+   - Click **Export PDF** to save the briefing for offline review.
 
-### 5. Reviewing Analytics
-- **Finish Assessment:** Once you complete a quiz, you will be taken to the **Report Screen**.
-- **Analyze Performance:** Review your overall score, category breakdown, and time spent on questions.
-- **Actionable Feedback:** Read the AI-generated "Work Smarter" tips to understand what areas need more focus before your real test.
+3. **Taking an Assessment in Zen Mode**:
+   - From the **Ready Screen**, select test parameters: Category (*All, Numerical, Verbal, Logical, SJT*), Difficulty (*Easy, Medium, Hard*), Duration, and Mode (*Standard* or *Mastery*).
+   - Toggle **Zen Mode** for an unscrollable, viewport-contained simulation.
+   - Use the **Floating Calculator** for fast computations; drag it anywhere on the screen or minimize it to a floating chip.
+   - Strikethrough options using elimination mode (`Cmd/Ctrl+E`), flag tricky questions, and track remaining time.
+
+4. **Reviewing Performance & Tracking Recent Sessions**:
+   - Upon completion, the **Report Screen** highlights your accuracy score, time spent per question, category strengths/weaknesses, and detailed explanations.
+   - The session automatically registers on your **Dashboard** in the **Recent Sessions** component, updating your cumulative XP, mastery progress, daily streak, and unlockable badges.
+
+5. **Self-Paced Study & Retention Reinforcement**:
+   - In the **Study Hub**, generate topic-specific study guides with nested Table of Contents.
+   - Switch to **Zen Reader** for sepia/large-print distraction-free reading.
+   - Take interactive **Knowledge Checks** at the end of each topic.
+   - Practice with interactive **3D Flashcards** and review mock test consistency on the **Focus Calendar**.
 
 ---
 
-## 💻 Getting Started (For Developers)
+## 🛠 Tech Stack & Architecture
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend Framework** | React 19, TypeScript, Vite 6 |
+| **Styling & Motion** | Tailwind CSS v4, Motion (`motion/react`), Lenis Smooth Scroll |
+| **Visuals & Icons** | Lucide React, Recharts (data visualization), Canvas Confetti |
+| **Backend & Server** | Node.js, Express (`server.ts` full-stack proxy), TSX |
+| **AI Integration** | Google Gemini API (`@google/genai`) using `gemini-3.8-flash` with resilient model fallbacks (`gemini-flash-latest`, `gemini-2.5-flash`) |
+| **Document Processing** | `pdf-lib` (PDF parsing), `mammoth` (DOCX extraction), Canvas/Image OCR |
+| **Export Engines** | `jspdf`, `html-to-image` |
+| **Database & Auth** | Firebase Authentication & Cloud Firestore with automatic local-storage fallback |
+
+---
+
+## 💻 Developer Setup & Running Locally
 
 ### Prerequisites
-You will need a valid **Google Gemini API key** and a **Firebase project configuration**.
+- Node.js 18+ or 20+
+- A Google Gemini API Key ([Google AI Studio](https://aistudio.google.com/))
+- A Firebase project (Authentication & Firestore enabled)
 
-### Setup Instructions
+### Installation
 
 1. **Clone the repository and install dependencies:**
    ```bash
@@ -88,20 +189,30 @@ You will need a valid **Google Gemini API key** and a **Firebase project configu
    ```
 
 2. **Configure Environment Variables:**
-   Rename `.env.example` to `.env` and fill in your Gemini and Firebase credentials:
+   Create a `.env` file in the root directory (referencing `.env.example`):
    ```env
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+   # Firebase Web Configuration
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    VITE_FIREBASE_APP_ID=your_app_id
+
+   # Gemini API Key (accessed server-side via server.ts proxy)
    GEMINI_API_KEY=your_gemini_api_key
    ```
 
 3. **Start the Development Server:**
    ```bash
    npm run dev
+   ```
+   The application runs at `http://localhost:3000` with the Vite-Express integration.
+
+4. **Verify Type-Safety & Build:**
+   ```bash
+   npm run lint   # Runs tsc --noEmit
+   npm run build  # Builds production client and server bundles
    ```
 
 ---
