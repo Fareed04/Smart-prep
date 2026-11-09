@@ -3,7 +3,7 @@ import {
   Building2, Search, Sparkles, BookOpen, CheckCircle2, Copy, Download, 
   ExternalLink, ArrowRight, ArrowLeft, Trophy, Star, Shield, Target, 
   Compass, HelpCircle, Layers, Award, Loader2, Bookmark, BookmarkCheck,
-  Briefcase, Globe, Users, TrendingUp, Check, ChevronRight, AlertCircle, RefreshCw
+  Briefcase, Globe, Users, TrendingUp, Check, ChevronRight, ChevronDown, AlertCircle, RefreshCw, RotateCcw, Plus
 } from 'lucide-react';
 import { CompanyDossier, Question } from '../types';
 import { 
@@ -24,6 +24,8 @@ interface CompanyIntelProps {
   pool: Question[];
   onBack: () => void;
   onPracticeCompany?: (company: string) => void;
+  onGenerateNewQuestions?: (company: string, isAdaptive?: boolean) => void;
+  onAddQuestionsToPool?: (company: string) => Promise<number>;
 }
 
 export function CompanyIntel({
@@ -32,6 +34,8 @@ export function CompanyIntel({
   pool,
   onBack,
   onPracticeCompany,
+  onGenerateNewQuestions,
+  onAddQuestionsToPool,
 }: CompanyIntelProps) {
   const [selectedCompany, setSelectedCompany] = useState<string>(initialCompany);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -48,6 +52,23 @@ export function CompanyIntel({
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const dossierContainerRef = useRef<HTMLDivElement>(null);
+
+  // Generate new questions menu state
+  const [showGenerateMenu, setShowGenerateMenu] = useState<boolean>(false);
+  const [isGeneratingPool, setIsGeneratingPool] = useState<boolean>(false);
+  const [poolSuccessMessage, setPoolSuccessMessage] = useState<string | null>(null);
+  const generateMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (generateMenuRef.current && !generateMenuRef.current.contains(event.target as Node)) {
+        setShowGenerateMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Combine popular and custom companies
   const availablePresets = useMemo(() => {
@@ -168,6 +189,32 @@ export function CompanyIntel({
     return pool.filter(q => q.company?.toLowerCase() === dossier.companyName.toLowerCase());
   }, [pool, dossier]);
 
+  const handleGenerateNew = (isAdaptive: boolean = false) => {
+    if (!dossier) return;
+    setShowGenerateMenu(false);
+    if (onGenerateNewQuestions) {
+      onGenerateNewQuestions(dossier.companyName, isAdaptive);
+    } else if (onPracticeCompany) {
+      onPracticeCompany(dossier.companyName);
+    }
+  };
+
+  const handleAddPoolQuestions = async () => {
+    if (!dossier || !onAddQuestionsToPool) return;
+    setShowGenerateMenu(false);
+    setIsGeneratingPool(true);
+    setPoolSuccessMessage(null);
+    try {
+      const count = await onAddQuestionsToPool(dossier.companyName);
+      setPoolSuccessMessage(`Successfully added ${count} fresh questions for ${dossier.companyName} to your pool!`);
+      setTimeout(() => setPoolSuccessMessage(null), 5000);
+    } catch (err) {
+      console.error("Failed to add questions:", err);
+    } finally {
+      setIsGeneratingPool(false);
+    }
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Top Navigation & Breadcrumbs */}
@@ -203,25 +250,116 @@ export function CompanyIntel({
               <button
                 onClick={exportPDF}
                 disabled={isExporting}
-                className="flex items-center space-x-2 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs font-semibold shadow-2xs disabled:opacity-50"
+                className="flex items-center space-x-2 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-xs font-semibold shadow-2xs disabled:opacity-50 cursor-pointer min-h-[38px]"
               >
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <Download className="w-4 h-4 text-blue-600" />}
                 <span>{isExporting ? 'Generating PDF...' : 'Download Dossier (PDF)'}</span>
               </button>
 
-              {onPracticeCompany && (
+              {/* Retake Existing Saved Questions (if pool already has questions for this company) */}
+              {onPracticeCompany && companyPoolQuestions.length > 0 && (
                 <button
                   onClick={() => onPracticeCompany(dossier.companyName)}
-                  className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow"
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold transition-all shadow-2xs cursor-pointer min-h-[38px]"
+                  title={`Retake ${companyPoolQuestions.length} existing saved question(s) in your pool`}
                 >
-                  <Target className="w-4 h-4" />
-                  <span>Practice {dossier.companyName} Test ({companyPoolQuestions.length || 'Mock'})</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Retake Saved ({companyPoolQuestions.length})</span>
                 </button>
               )}
+
+              {/* Generate Brand New Questions Button (with Split Menu) */}
+              <div className="relative" ref={generateMenuRef}>
+                <div className="inline-flex rounded-xl shadow-xs overflow-hidden">
+                  <button
+                    onClick={() => handleGenerateNew(false)}
+                    disabled={isGeneratingPool}
+                    className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all cursor-pointer min-h-[38px] disabled:opacity-50"
+                    title={`Generate brand new simulation questions for ${dossier.companyName}`}
+                  >
+                    {isGeneratingPool ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                    )}
+                    <span>{isGeneratingPool ? 'Generating...' : 'Generate New Questions'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerateMenu(prev => !prev)}
+                    disabled={isGeneratingPool}
+                    className="px-2.5 py-2 bg-blue-700 hover:bg-blue-800 text-white border-l border-blue-500/40 text-xs font-bold transition-all cursor-pointer min-h-[38px] flex items-center justify-center disabled:opacity-50"
+                    aria-label="More question generation options"
+                    title="Choose test generation mode"
+                  >
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", showGenerateMenu && "rotate-180")} />
+                  </button>
+                </div>
+
+                {/* Dropdown Options */}
+                {showGenerateMenu && (
+                  <div className="absolute right-0 mt-1.5 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                      New Assessment: {dossier.companyName}
+                    </div>
+                    <button
+                      onClick={() => handleGenerateNew(false)}
+                      className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-start space-x-2.5 transition-colors group cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          Standard Mock (15 Fresh Questions)
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Timed simulation across Numerical, Verbal, Logical & SJT
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleGenerateNew(true)}
+                      className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-start space-x-2.5 transition-colors group cursor-pointer"
+                    >
+                      <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                          Adaptive AI Mode (Dynamic Scaling)
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Real-time difficulty adjusts based on your answers
+                        </div>
+                      </div>
+                    </button>
+                    {onAddQuestionsToPool && (
+                      <button
+                        onClick={handleAddPoolQuestions}
+                        className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex items-start space-x-2.5 transition-colors group cursor-pointer border-t border-slate-100 dark:border-slate-800"
+                      >
+                        <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                            Add Fresh Questions to Pool
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Generate & store 15 new questions without starting immediately
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
       </div>
+
+      {poolSuccessMessage && (
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 flex items-center space-x-2 animate-in fade-in">
+          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{poolSuccessMessage}</span>
+        </div>
+      )}
 
       {/* Search Bar & Quick Switcher */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -757,15 +895,40 @@ export function CompanyIntel({
                   );
                 })}
 
-                {!quizSubmitted && (
+                {!quizSubmitted ? (
                   <div className="flex justify-end pt-2">
                     <button
                       onClick={handleQuizSubmit}
                       disabled={Object.keys(quizAnswers).length < dossier.miniQuiz.length}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-sm font-bold transition-all shadow-sm"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-sm font-bold transition-all shadow-sm cursor-pointer"
                     >
                       Submit Knowledge Check
                     </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Score: <span className="font-bold text-blue-600 dark:text-blue-400">{dossier.miniQuiz.filter((q, idx) => quizAnswers[idx] === q.answer).length}</span> / {dossier.miniQuiz.length} correct
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        onClick={() => {
+                          setQuizSubmitted(false);
+                          setQuizAnswers({});
+                        }}
+                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Retake This Quiz</span>
+                      </button>
+                      <button
+                        onClick={() => handleGenerateNew(false)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Generate Full Assessment</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

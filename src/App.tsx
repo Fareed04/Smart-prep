@@ -426,6 +426,31 @@ export default function App() {
     }
   }, [extractedPool, questionProgress, user]);
 
+  const handleAddCompanyQuestionsToPool = React.useCallback(async (company: string): Promise<number> => {
+    try {
+      const mockQuestions = await generateMockAssessment(company);
+      const mergedPool = deduplicateQuestions([...extractedPool, ...mockQuestions]);
+      setExtractedPool(mergedPool);
+
+      if (user && canWriteToFirestore()) {
+        setDoc(doc(db, 'questionPools', user.uid), { 
+          pool: JSON.stringify(mergedPool),
+          progress: JSON.stringify(questionProgress)
+        }, { merge: true }).catch((err) => {
+          console.warn("Cloud pool sync skipped:", err);
+          if (err?.code === 'resource-exhausted' || err?.message?.includes('Quota')) {
+            markFirestoreQuotaExceeded();
+          }
+        });
+      }
+
+      return mockQuestions.length;
+    } catch (e) {
+      console.error("Failed to add company questions to pool:", e);
+      throw e;
+    }
+  }, [extractedPool, questionProgress, user]);
+
   const handleStartProcessing = React.useCallback(async (company: string) => {
     if (files.length === 0) return;
     setAppState('processing');
@@ -1289,6 +1314,10 @@ export default function App() {
                 setAppState('upload');
               }
             }}
+            onGenerateNewQuestions={(company, isAdaptive) => {
+              handleGenerateMock(company, isAdaptive);
+            }}
+            onAddQuestionsToPool={handleAddCompanyQuestionsToPool}
           />
         )}
       </main>
