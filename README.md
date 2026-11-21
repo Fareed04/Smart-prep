@@ -37,6 +37,13 @@ Powered by Google Gemini models (`gemini-3.8-flash`, with multi-tier fallback to
   - **Company Pillars & Core Values**: Cultural competencies evaluated during Situational Judgement and behavioral assessments.
   - **Representative Sample Questions**: Realistic practice questions modeled after the firm's authentic assessment style.
   - **Preparation & Interview Strategy**: Concrete tactics to ace the firm's testing and interview stages.
+- **On-Demand Fresh Question Generation & Practice Controls**:
+  - **Generate New Questions (Split Button)**: Generate fresh company-tailored questions directly from any dossier without repeating old questions:
+    - *Standard Mock (15 Fresh Questions)*: Synthesizes and immediately launches a fresh timed simulation across Numerical, Verbal, Logical, and Situational Judgement.
+    - *Adaptive AI Mode (Dynamic Scaling)*: Launches an adaptive test that recalibrates question difficulty in real time based on your answers.
+    - *Add Fresh Questions to Pool*: Generates and saves 15 brand-new company-specific questions directly into your pool without leaving the dossier.
+  - **Retake Saved Questions**: Displays a dedicated **Retake Saved ({count})** action whenever existing questions for the target company are already stored in your pool.
+  - **Commercial Readiness Mini-Quiz**: Built-in *Test Your Knowledge* quiz with score feedback and post-submission options to **Retake This Quiz** or jump straight into **Generate Full Assessment**.
 - **Export & Portability**: Download comprehensive dossiers as formatted PDF reports (`jspdf`) or copy structured summaries to the clipboard.
 - **Resilient Fallback Engine**: Built-in structured research generator ensures preparation is never interrupted by external API quotas or offline status.
 
@@ -92,11 +99,12 @@ Powered by Google Gemini models (`gemini-3.8-flash`, with multi-tier fallback to
 ┌──────────────────┐    ┌────────────────────────┐    ┌──────────────────┐
 │   UPLOAD FILES   │    │     COMPANY INTEL      │    │    STUDY HUB     │
 │ Ingest PDFs,     │    │ Research target firm,  │    │ Generate guides, │
-│ DOCX, images     │    │ test providers (SHL),  │    │ 3D flashcards,   │
-│ & past questions │    │ export PDF dossiers    │    │ Focus Calendar   │
-└───────┬──────────┘    └────────────────────────┘    └──────────────────┘
-        │
-        ▼
+│ DOCX, images     │    │ export PDF dossiers,   │    │ 3D flashcards,   │
+│ & past questions │    │ Generate New Questions │    │ Focus Calendar   │
+└───────┬──────────┘    └───────────┬────────────┘    └──────────────────┘
+        │                           │ (Standard Mock / Adaptive / Add to Pool)
+        └─────────────┬─────────────┘
+                      ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                   3. ANIMATED EXTRACTION SCREEN                        │
 │   Linear progress bar with live shimmer, OCR parsing, 4 milestones     │
@@ -135,11 +143,11 @@ Powered by Google Gemini models (`gemini-3.8-flash`, with multi-tier fallback to
    - Select or add your target company (e.g., KPMG, EY, PwC, Deloitte, or a custom firm).
    - Click **Process & Start Simulation**. The app transitions to the **ProcessingScreen**, displaying the animated linear progress bar as files pass through OCR, extraction, deduplication, and 2026 cognitive fact verification.
 
-2. **Conducting Company Background Research**:
+2. **Conducting Company Background Research & Generating Fresh Questions**:
    - Open **Company Intel** from the top header or mobile menu.
-   - Select a target company or type a new organization name.
-   - The AI synthesizes assessment provider details (SHL, Korn Ferry, Cappfinity), cultural evaluation pillars, sample test items, and interview strategy.
-   - Click **Export PDF** to save the briefing for offline review.
+   - Select a target company or search any custom organization name.
+   - Review assessment provider details (SHL, Korn Ferry, Cappfinity), cultural evaluation pillars, sample test items, reverse interview questions, and take the built-in **Test Your Knowledge** mini-quiz (with options to **Retake This Quiz** or **Generate Full Assessment** upon submission).
+   - Use the top-right action bar to **Download Dossier (PDF)**, **Retake Saved** questions already in your pool, or open the **Generate New Questions** split-button to launch a fresh *Standard Mock (15 Fresh Questions)*, start *Adaptive AI Mode*, or *Add Fresh Questions to Pool* for later practice.
 
 3. **Taking an Assessment in Zen Mode**:
    - From the **Ready Screen**, select test parameters: Category (*All, Numerical, Verbal, Logical, SJT*), Difficulty (*Easy, Medium, Hard*), Duration, and Mode (*Standard* or *Mastery*).
