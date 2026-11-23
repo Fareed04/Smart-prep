@@ -681,6 +681,85 @@ Provide tailored advice:`;
     }
   });
 
+  // Helper to ensure every dossier has competitors, STAR prompts, redFlags, and commonTraps
+  function enrichDossier(dossier: any, targetRole: string) {
+    const name = dossier.companyName || "the organization";
+    const norm = name.toLowerCase();
+
+    if (!Array.isArray(dossier.competitors) || dossier.competitors.length === 0) {
+      if (norm.includes("kpmg")) {
+        dossier.competitors = [
+          { name: "PwC", differentiator: "KPMG leans into a tighter, human-centric 'Together, For Better' culture and deep Microsoft Azure AI integration via KPMG Clara, often giving junior trainees broader cross-client ownership earlier." },
+          { name: "Deloitte", differentiator: "While Deloitte is the largest by consulting headcount, KPMG maintains a strong integrated Audit-Tax-Advisory balance and specialized mid-market agility via KPMG Enterprise." },
+          { name: "EY", differentiator: "KPMG differentiates through cohesive multidisciplinary collaboration without structural split distractions, paired with targeted ESG and regulatory transformation hubs." }
+        ];
+      } else if (norm.includes("pwc") || norm.includes("pricewaterhouse")) {
+        dossier.competitors = [
+          { name: "Deloitte", differentiator: "PwC pairs world-leading assurance prestige with pure-play corporate strategy via Strategy& and 'The New Equation' human-led, tech-powered framework." },
+          { name: "KPMG", differentiator: "PwC holds larger global advisory scale, an early enterprise OpenAI/Harvey deployment across Tax & Legal, and the structured PwC Professional leadership model." },
+          { name: "EY", differentiator: "PwC combines dominant FTSE/Fortune 500 audit penetration with high-margin Deals and transaction services across 152 countries." }
+        ];
+      } else if (norm.includes("deloitte")) {
+        dossier.competitors = [
+          { name: "PwC", differentiator: "Deloitte leads the Big Four in global revenue and end-to-end technology, cyber, and digital engineering consulting scale." },
+          { name: "Accenture", differentiator: "Unlike pure tech consultancies, Deloitte pairs deep enterprise technology delivery with Audit, Risk, Tax, and M&A advisory under one roof." },
+          { name: "KPMG", differentiator: "Deloitte offers unmatched breadth across specialized industry verticals and global Deloitte University leadership centers." }
+        ];
+      } else if (norm.includes("ey") || norm.includes("ernst")) {
+        dossier.competitors = [
+          { name: "PwC", differentiator: "EY stands out for EY-Parthenon strategy, strong IPO and entrepreneurial founder ecosystems (World Entrepreneur of the Year), and 'Building a Better Working World'." },
+          { name: "Deloitte", differentiator: "EY emphasizes global borderless teaming across integrated geographic areas and accessible Tech MBA / Badges upskilling for all employees." },
+          { name: "KPMG", differentiator: "EY has a particularly strong footprint in transaction advisory, private equity diligence, and technology-sector assurance." }
+        ];
+      } else if (norm.includes("mckinsey")) {
+        dossier.competitors = [
+          { name: "BCG", differentiator: "McKinsey operates as a true 'One Firm' global staffing partnership with unparalleled C-suite board access and proprietary QuantumBlack AI capabilities." },
+          { name: "Bain & Company", differentiator: "While Bain uses a home-office staffing model heavily weighted to private equity, McKinsey offers broader global mobility and public/social sector reach." },
+          { name: "Deloitte / Big 4", differentiator: "McKinsey focuses on top-of-house CEO strategy, transformative organizational turnarounds, and rapid meritocratic progression." }
+        ];
+      } else if (norm.includes("goldman")) {
+        dossier.competitors = [
+          { name: "JP Morgan", differentiator: "Goldman Sachs is renowned for elite M&A advisory leadership, institutional trading precision, and an intense apprenticeship culture." },
+          { name: "Morgan Stanley", differentiator: "Goldman pairs top-ranked investment banking league table dominance with proprietary quantitative engineering (Marquee platform)." },
+          { name: "Citi / Bank of America", differentiator: "Goldman focuses intensely on high-margin institutional advisory, asset & wealth management, and global markets execution." }
+        ];
+      } else {
+        dossier.competitors = [
+          { name: "Tier-1 Industry Peers", differentiator: `${name} distinguishes itself through focused execution, strong brand equity, and investment in modern digital operations.` },
+          { name: "Agile Market Challengers", differentiator: `${name} pairs institutional reliability and client trust with scalable talent development programs.` },
+          { name: "Global Conglomerates", differentiator: `${name} offers early-career candidates high visibility, cross-functional ownership, and structured commercial training.` }
+        ];
+      }
+    }
+
+    if (Array.isArray(dossier.coreValues)) {
+      dossier.coreValues = dossier.coreValues.map((v: any) => ({
+        ...v,
+        starPrompt: v.starPrompt || `Tell me about a time you demonstrated "${v.value}" under pressure or when facing competing priorities—what action did you take and what was the measurable outcome?`
+      }));
+    }
+
+    if (!Array.isArray(dossier.redFlags) || dossier.redFlags.length === 0) {
+      dossier.redFlags = [
+        `Giving a generic "Why ${name}?" answer that could be copy-pasted onto a rival's application without naming specific platforms, divisions, or 2024–2026 initiatives.`,
+        `Failing to connect your personal background to the commercial realities and day-to-day responsibilities of a ${targetRole}.`,
+        `Ignoring ${name}'s official core values during Situational Judgement Tests—choosing expediency or unilateral decisions over ethics, transparency, and collaboration.`,
+        `Ending the interview with "No, I don't have any questions" or asking basic facts already stated on the careers homepage.`
+      ];
+    }
+
+    if (dossier.assessmentStyle && (!Array.isArray(dossier.assessmentStyle.commonTraps) || dossier.assessmentStyle.commonTraps.length === 0)) {
+      dossier.assessmentStyle.commonTraps = [
+        "Spending too long on a single multi-step numerical chart instead of flagging and preserving pacing discipline.",
+        "Bringing outside assumptions into Verbal Reasoning passages rather than relying strictly on stated text.",
+        "Treating Situational Judgement scenarios casually instead of systematically scoring each option against the firm's official values."
+      ];
+    }
+
+    dossier.targetRole = targetRole;
+    return dossier;
+  }
+
   // Company Intelligence & Background Research API
   app.post("/api/company-research", async (req, res) => {
     try {
@@ -693,14 +772,16 @@ Provide tailored advice:`;
       const targetRole = role ? String(role).trim() : "Graduate Trainee / Analyst";
       const apiKey = process.env.GEMINI_API_KEY;
 
-      let parsedDossier = null;
+      let parsedDossier: any = null;
+      let groundingSources: { title: string; uri: string }[] = [];
+      let isLiveGrounded = false;
 
       // Only invoke Gemini API if a plausible API key is configured
       if (apiKey && apiKey.trim().length > 10) {
         const prompt = `You are a world-class corporate assessment and executive interview coach specializing in graduate traineeships, management consulting, Big 4 accounting, investment banking, and technology recruitment.
-Conduct an in-depth background research breakdown for the organization: "${cleanCompany}" for a candidate preparing for their assessment and upcoming interviews for the role of "${targetRole}".
+Conduct an in-depth background research breakdown for the organization: "${cleanCompany}" specifically tailored for a candidate preparing for assessments and interviews for the role of "${targetRole}".
 
-Use Google Search grounding to retrieve authentic, real-world data, the exact official core values, current leadership, real business divisions, and recent news/initiatives from 2024-2026.
+Use Google Search grounding to retrieve authentic, real-world data: exact official core values, current leadership, real business divisions, key competitors, and recent strategic news/initiatives from 2024-2026.
 
 You MUST return ONLY a valid, parseable JSON object without markdown codeblocks, commentary, or extra text.
 Adhere strictly to this JSON format:
@@ -709,30 +790,37 @@ Adhere strictly to this JSON format:
   "tagline": "Official motto or prominent slogan",
   "industry": "Primary industry sector (e.g., Professional Services / Big 4, FinTech, Investment Banking)",
   "headquarters": "City, Country",
-  "founded": "Year founded or founding context",
+  "founded": "Year founded or brief founding context",
   "ceoOrLeadership": "Current CEO, Managing Partner, or Global Leader",
   "overview": "Clear 3-4 sentence breakdown of what this organization actually does, its business model, scale, and global prestige.",
   "divisions": ["Core Division 1", "Core Division 2", "Core Division 3", "Core Division 4"],
   "marketPosition": "2-3 sentences explaining their competitive edge, strategic moat, and how they differentiate from rivals.",
+  "competitors": [
+    {
+      "name": "Direct Competitor Name",
+      "differentiator": "1-2 sentences explaining specifically how ${cleanCompany} stands out against this rival so the candidate can answer 'Why ${cleanCompany} over [rival]?'"
+    }
+  ],
   "coreValues": [
     {
       "value": "Exact Name of Core Value",
       "explanation": "What this value means to the company",
-      "interviewAdvice": "Specific actionable tactics on how the candidate must exhibit this value during behavioral interviews and situational judgement tests"
+      "interviewAdvice": "Specific actionable tactics on how the candidate must exhibit this value during behavioral interviews and situational judgement tests",
+      "starPrompt": "A realistic behavioral STAR interview question an interviewer at ${cleanCompany} would ask to test this exact value for a ${targetRole} candidate"
     }
   ],
   "recentDevelopments": [
     {
       "headline": "Real recent strategic move, AI partnership, ESG milestone, or major client project",
       "summary": "Concise summary of the strategic move",
-      "relevanceToCandidate": "How the candidate can cite this in their interview to demonstrate commercial awareness",
-      "dateOrContext": "Timeframe or context (e.g., 2024-2026)"
+      "relevanceToCandidate": "How a ${targetRole} candidate can cite this in their interview to demonstrate commercial awareness",
+      "dateOrContext": "Timeframe or context (e.g., 2025-2026)"
     }
   ],
   "whyThisCompanyPitches": [
     {
       "angle": "Innovation & Strategic Direction Angle",
-      "pitch": "A polished, conversational 3-4 sentence answer to 'Why do you want to work at ${cleanCompany}?' focusing on this angle."
+      "pitch": "A polished, conversational 3-4 sentence answer to 'Why do you want to work at ${cleanCompany} as a ${targetRole}?' focusing on this angle."
     },
     {
       "angle": "Culture & Core Values Angle",
@@ -740,23 +828,29 @@ Adhere strictly to this JSON format:
     },
     {
       "angle": "Client Impact & Career Growth Angle",
-      "pitch": "A polished, conversational 3-4 sentence response focusing on client impact and learning curve."
+      "pitch": "A polished, conversational 3-4 sentence response focusing on impact and learning curve for a ${targetRole}."
     }
   ],
   "smartReverseQuestions": [
     {
-      "question": "An intelligent, sophisticated question the candidate can ask the partner or interviewer at the end of the interview",
+      "question": "An intelligent, sophisticated question a ${targetRole} candidate can ask the partner or hiring manager at the end of the interview",
       "contextWhyToAsk": "Why asking this demonstrates high commercial acumen and thorough preparation"
     }
   ],
   "assessmentStyle": {
-    "testProvider": "Typical testing publishers used (e.g., Cappfinity, SHL, Cubiks, Korn Ferry, Saville, Pymetrics, or In-house)",
-    "stages": ["Online Application & Screening", "Blended Cognitive & SJT Assessment", "Immersive Video Interview", "Assessment Centre / Partner Case Study"],
-    "tipsForSuccess": "3-4 insider tactics for passing this company's tests and avoiding typical candidate pitfalls."
+    "testProvider": "Typical testing publishers used (e.g., Cappfinity, SHL, Cubiks, Korn Ferry, Saville, Pymetrics, HackerRank, or In-house)",
+    "stages": ["Stage 1: Online Application & Screening", "Stage 2: Assessment Details", "Stage 3: Interview Stage", "Stage 4: Final Round / Assessment Centre"],
+    "tipsForSuccess": "3-4 concrete insider tactics for passing ${cleanCompany}'s ${targetRole} hiring process.",
+    "commonTraps": ["Specific assessment or interview pitfall 1", "Specific assessment or interview pitfall 2", "Specific assessment or interview pitfall 3"]
   },
+  "redFlags": [
+    "Specific mistake 1 that causes ${cleanCompany} candidates to get rejected",
+    "Specific mistake 2 to avoid in interviews",
+    "Specific mistake 3 regarding commercial awareness or cultural fit"
+  ],
   "miniQuiz": [
     {
-      "question": "A multiple-choice question testing the candidate's recall of ${cleanCompany}'s values, history, or strategy",
+      "question": "A multiple-choice question testing the candidate's recall of ${cleanCompany}'s values, leadership, platforms, or recent strategy",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "answer": "Option A",
       "explanation": "Why this answer is correct"
@@ -764,39 +858,61 @@ Adhere strictly to this JSON format:
   ]
 }
 
-Provide at least 4-5 coreValues, 3 recentDevelopments, 3 whyThisCompanyPitches, 4 smartReverseQuestions, and 4 miniQuiz questions.`;
+Provide at least 3 competitors, 4-5 coreValues, 3 recentDevelopments, 3 whyThisCompanyPitches, 4 smartReverseQuestions, 3 redFlags, and 4 miniQuiz questions.`;
+
+        const extractGroundingSources = (resp: any) => {
+          const chunks = resp?.candidates?.[0]?.groundingMetadata?.groundingChunks;
+          if (!Array.isArray(chunks)) return [];
+          const seen = new Set<string>();
+          const result: { title: string; uri: string }[] = [];
+          for (const chunk of chunks) {
+            const uri = chunk?.web?.uri;
+            const title = chunk?.web?.title;
+            if (uri && typeof uri === "string" && !seen.has(uri)) {
+              seen.add(uri);
+              result.push({
+                title: (title && String(title).trim()) || new URL(uri).hostname.replace(/^www\./, ""),
+                uri,
+              });
+            }
+            if (result.length >= 8) break;
+          }
+          return result;
+        };
 
         let responseText = "";
         try {
           const ai = getAIClient();
           const response = await ai.models.generateContent({
-            model: "gemini-3.8-flash",
+            model: "gemini-4-hydrogen",
             contents: prompt,
             config: {
-              temperature: 0.3,
               responseMimeType: "application/json",
-              tools: [{ googleSearch: {} }]
-            }
+              tools: [{ googleSearch: {} }],
+            },
           });
           responseText = response.text || "";
+          groundingSources = extractGroundingSources(response);
+          if (responseText) isLiveGrounded = true;
         } catch (firstErr: any) {
           if (isApiKeyError(firstErr)) {
-            console.log(`[Company Research] Gemini API key not active or invalid. Seamlessly serving verified dossier for "${cleanCompany}".`);
+            console.log(`[Company Research] Gemini API key not active or invalid. Serving curated dossier for "${cleanCompany}".`);
           } else {
-            // Transient network/model error, try fallback model
             try {
               const ai = getAIClient();
               const response = await ai.models.generateContent({
-                model: "gemini-flash-latest",
+                model: "gemini-3.8-flash",
                 contents: prompt,
                 config: {
-                  temperature: 0.3,
                   responseMimeType: "application/json",
-                }
+                  tools: [{ googleSearch: {} }],
+                },
               });
               responseText = response.text || "";
+              groundingSources = extractGroundingSources(response);
+              if (responseText) isLiveGrounded = true;
             } catch {
-              console.log(`[Company Research] Fallback model call failed, serving verified dossier for "${cleanCompany}".`);
+              console.log(`[Company Research] Fallback model call failed, serving curated dossier for "${cleanCompany}".`);
             }
           }
         }
@@ -815,15 +931,133 @@ Provide at least 4-5 coreValues, 3 recentDevelopments, 3 whyThisCompanyPitches, 
 
       if (!parsedDossier || !parsedDossier.companyName) {
         parsedDossier = getFallbackCompanyDossier(cleanCompany);
+        isLiveGrounded = false;
       }
 
+      parsedDossier = enrichDossier(parsedDossier, targetRole);
+      parsedDossier.groundingSources = groundingSources;
+      parsedDossier.isLiveGrounded = isLiveGrounded;
       parsedDossier.id = "dossier_" + cleanCompany.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
       parsedDossier.savedAt = new Date().toISOString();
 
       res.json({ dossier: parsedDossier });
     } catch {
       const companyParam = (req.body?.company as string) || "KPMG";
-      res.json({ dossier: getFallbackCompanyDossier(companyParam) });
+      const roleParam = (req.body?.role as string) || "Graduate Trainee / Analyst";
+      const fallback = enrichDossier(getFallbackCompanyDossier(companyParam), roleParam);
+      fallback.isLiveGrounded = false;
+      fallback.id = "dossier_" + companyParam.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
+      fallback.savedAt = new Date().toISOString();
+      res.json({ dossier: fallback });
+    }
+  });
+
+  // Fresh Company Knowledge Check Generator (never repeats previous mini-quiz questions)
+  app.post("/api/company-quiz", async (req, res) => {
+    try {
+      const { company, role, overview, values, developments, previousQuestions } = req.body;
+      const cleanCompany = (company && String(company).trim()) || "the organization";
+      const targetRole = (role && String(role).trim()) || "Graduate Trainee / Analyst";
+      const prevList: string[] = Array.isArray(previousQuestions) ? previousQuestions : [];
+      const apiKey = process.env.GEMINI_API_KEY;
+
+      if (apiKey && apiKey.trim().length > 10) {
+        const prompt = `Create 4 brand-new, challenging multiple-choice interview readiness questions about "${cleanCompany}" for a "${targetRole}" candidate.
+Use the context below to test commercial awareness, competitive differentiation, cultural values, and situational judgement.
+
+Company Overview: ${overview || ""}
+Core Values: ${JSON.stringify(values || [])}
+Recent Initiatives: ${JSON.stringify(developments || [])}
+
+CRITICAL: Do NOT repeat or rephrase any of these previously asked questions:
+${prevList.map((q, i) => `${i + 1}. ${q}`).join("\n") || "None"}
+
+Return ONLY a valid JSON array of 4 objects with no markdown fences:
+[
+  {
+    "question": "Clear, specific question testing real knowledge or values judgement",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": "Exact matching string of the correct option",
+    "explanation": "Concise 1-2 sentence explanation of why this is correct"
+  }
+]`;
+
+        try {
+          const ai = getAIClient();
+          const response = await ai.models.generateContent({
+            model: "gemini-4-hydrogen",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+            },
+          });
+          const text = (response.text || "").replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.question) {
+            return res.json({ questions: parsed.slice(0, 4) });
+          }
+        } catch (err) {
+          console.log("[Company Quiz] Live generation unavailable, building dynamic contextual quiz.", err instanceof Error ? err.message : "");
+        }
+      }
+
+      // Dynamic contextual fallback built from the dossier's actual values & developments
+      const valNames: string[] = Array.isArray(values) ? values.map((v: any) => v.value).filter(Boolean) : [];
+      const devHeadlines: string[] = Array.isArray(developments) ? developments.map((d: any) => d.headline).filter(Boolean) : [];
+      const primaryValue = valNames[0] || "Integrity";
+      const secondaryValue = valNames[1] || "Collaboration";
+      const primaryDev = devHeadlines[0] || "Digital Transformation & Workflow Modernization";
+
+      const dynamicFallback = [
+        {
+          question: `During a ${cleanCompany} assessment scenario, a tight client deadline tempts a teammate to skip a quality verification step. Applying "${primaryValue}", what is the strongest response?`,
+          options: [
+            "Flag the risk transparently, uphold quality standards, and coordinate a realistic plan with your manager",
+            "Bypass the verification quietly to keep the client satisfied in the short term",
+            "Ignore the teammate's shortcut as long as your own section is complete",
+            "Delay the project indefinitely without communicating to stakeholders"
+          ],
+          answer: "Flag the risk transparently, uphold quality standards, and coordinate a realistic plan with your manager",
+          explanation: `${cleanCompany} evaluates situational judgement directly against "${primaryValue}"—protecting quality and transparent communication always outweighs risky shortcuts.`
+        },
+        {
+          question: `How can a ${targetRole} candidate best leverage "${primaryDev}" during a ${cleanCompany} interview?`,
+          options: [
+            "Connect the initiative to how the role is evolving and ask an insightful follow-up question about team impact",
+            "Recite the press release headline verbatim without explaining why it matters",
+            "Avoid mentioning recent news unless the interviewer brings it up first",
+            "Compare it negatively against unrelated startups"
+          ],
+          answer: "Connect the initiative to how the role is evolving and ask an insightful follow-up question about team impact",
+          explanation: "High-scoring candidates link strategic initiatives directly to the role's day-to-day value creation and commercial awareness."
+        },
+        {
+          question: `When asked "Why ${cleanCompany} over direct competitors?" as a ${targetRole} applicant, what makes an answer stand out?`,
+          options: [
+            "Citing specific business divisions, cultural differentiation, and recent strategic investments tied to your career goals",
+            "Saying it is a prestigious global company with good compensation",
+            "Listing generic strengths that apply equally to every firm in the sector",
+            "Criticizing competitors' employees directly"
+          ],
+          answer: "Citing specific business divisions, cultural differentiation, and recent strategic investments tied to your career goals",
+          explanation: "Interviewers look for authentic, firm-specific research rather than interchangeable praise."
+        },
+        {
+          question: `To demonstrate "${secondaryValue}" in a ${cleanCompany} behavioral interview, which answer structure is most compelling?`,
+          options: [
+            "A specific STAR example quantifying your personal actions, how you aligned stakeholders, and the measurable result",
+            "A philosophical definition of teamwork without any real-world example",
+            "Speaking only in 'we' statements without clarifying your own contribution",
+            "Focusing solely on technical tools while skipping interpersonal impact"
+          ],
+          answer: "A specific STAR example quantifying your personal actions, how you aligned stakeholders, and the measurable result",
+          explanation: "Concrete STAR stories that clarify your individual contribution and measurable outcomes score highest in competency rubrics."
+        }
+      ];
+
+      res.json({ questions: dynamicFallback });
+    } catch {
+      res.status(500).json({ error: "Unable to generate fresh company quiz questions." });
     }
   });
 

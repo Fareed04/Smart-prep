@@ -81,6 +81,7 @@ export interface CompanyValue {
   value: string;
   explanation: string;
   interviewAdvice: string;
+  starPrompt?: string;
 }
 
 export interface CompanyNewsItem {
@@ -107,9 +108,20 @@ export interface CompanyQuizQuestion {
   explanation: string;
 }
 
+export interface CompanyCompetitor {
+  name: string;
+  differentiator: string;
+}
+
+export interface CompanySource {
+  title: string;
+  uri: string;
+}
+
 export interface CompanyDossier {
   id: string;
   companyName: string;
+  targetRole?: string;
   tagline: string;
   industry: string;
   headquarters: string;
@@ -118,6 +130,7 @@ export interface CompanyDossier {
   overview: string;
   divisions: string[];
   marketPosition: string;
+  competitors?: CompanyCompetitor[];
   coreValues: CompanyValue[];
   recentDevelopments: CompanyNewsItem[];
   whyThisCompanyPitches: CompanyPitch[];
@@ -126,8 +139,12 @@ export interface CompanyDossier {
     testProvider: string;
     stages: string[];
     tipsForSuccess: string;
+    commonTraps?: string[];
   };
+  redFlags?: string[];
   miniQuiz: CompanyQuizQuestion[];
   sources?: string[];
+  groundingSources?: CompanySource[];
+  isLiveGrounded?: boolean;
   savedAt: string;
 }

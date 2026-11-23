@@ -1,6 +1,22 @@
-import { CompanyDossier } from '../types';
+import { CompanyDossier, CompanyQuizQuestion } from '../types';
 
 export const STORAGE_KEY_SAVED_DOSSIERS = 'smartprep_saved_dossiers';
+const STORAGE_KEY_PREP_WORKSPACE = 'smartprep_company_prep_workspace_v1';
+
+export const ROLE_PRESETS = [
+  'Graduate Trainee / Analyst',
+  'Audit & Assurance',
+  'Management Consulting',
+  'Investment Banking',
+  'Software Engineering',
+  'Product & Strategy',
+];
+
+export interface CompanyPrepWorkspace {
+  customPitch: string;
+  checkedItems: string[];
+  pinnedQuestions: string[];
+}
 
 export const POPULAR_COMPANIES = [
   { name: 'KPMG', sector: 'Big 4 / Advisory & Assurance', color: 'from-blue-600 to-indigo-700' },
@@ -12,6 +28,29 @@ export const POPULAR_COMPANIES = [
   { name: 'Google', sector: 'Technology & Cloud', color: 'from-red-600 to-orange-600' },
   { name: 'JP Morgan', sector: 'Corporate & Investment Banking', color: 'from-amber-800 to-stone-900' }
 ];
+
+export function getCompanyPrepWorkspace(companyName: string): CompanyPrepWorkspace {
+  const key = companyName.trim().toLowerCase();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PREP_WORKSPACE);
+    const all: Record<string, CompanyPrepWorkspace> = raw ? JSON.parse(raw) : {};
+    return all[key] || { customPitch: '', checkedItems: [], pinnedQuestions: [] };
+  } catch {
+    return { customPitch: '', checkedItems: [], pinnedQuestions: [] };
+  }
+}
+
+export function saveCompanyPrepWorkspace(companyName: string, workspace: CompanyPrepWorkspace): void {
+  const key = companyName.trim().toLowerCase();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PREP_WORKSPACE);
+    const all: Record<string, CompanyPrepWorkspace> = raw ? JSON.parse(raw) : {};
+    all[key] = workspace;
+    localStorage.setItem(STORAGE_KEY_PREP_WORKSPACE, JSON.stringify(all));
+  } catch (e) {
+    console.warn("Could not save prep workspace locally:", e);
+  }
+}
 
 export function getSavedDossiers(): CompanyDossier[] {
   try {
@@ -43,15 +82,35 @@ export function deleteDossierLocally(companyName: string): void {
   }
 }
 
-export async function fetchCompanyResearch(companyName: string, role?: string): Promise<CompanyDossier> {
+export async function fetchCompanyResearch(
+  companyName: string,
+  role?: string,
+  forceRefresh: boolean = false
+): Promise<CompanyDossier> {
   const cleanName = companyName.trim();
-  
+  const cleanRole = (role || 'Graduate Trainee / Analyst').trim();
+
+  // 0. Instant local cache hit if not forcing refresh & schema is up-to-date
+  if (!forceRefresh) {
+    const saved = getSavedDossiers();
+    const cached = saved.find(
+      d =>
+        d.companyName.toLowerCase() === cleanName.toLowerCase() &&
+        (d.targetRole || 'Graduate Trainee / Analyst').toLowerCase() === cleanRole.toLowerCase() &&
+        Array.isArray(d.competitors) &&
+        d.competitors.length > 0
+    );
+    if (cached) {
+      return cached;
+    }
+  }
+
   // 1. Try server endpoint with Gemini Search Grounding
   try {
     const response = await fetch('/api/company-research', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company: cleanName, role }),
+      body: JSON.stringify({ company: cleanName, role: cleanRole }),
     });
 
     if (response.ok) {
@@ -65,17 +124,108 @@ export async function fetchCompanyResearch(companyName: string, role?: string): 
     console.warn("Network call to /api/company-research failed, checking local cache:", err);
   }
 
-  // 2. Check local saved dossiers
+  // 2. Check local saved dossiers (any role)
   const saved = getSavedDossiers();
   const existing = saved.find(d => d.companyName.toLowerCase() === cleanName.toLowerCase());
   if (existing) {
-    return existing;
+    return enrichLocalDossier(existing, cleanRole);
   }
 
   // 3. Built-in instant curated dossiers for default firms
-  const fallback = getCuratedFallback(cleanName);
+  const fallback = enrichLocalDossier(getCuratedFallback(cleanName), cleanRole);
   saveDossierLocally(fallback);
   return fallback;
+}
+
+function enrichLocalDossier(dossier: CompanyDossier, targetRole: string): CompanyDossier {
+  const name = dossier.companyName;
+  const norm = name.toLowerCase();
+
+  const competitors =
+    dossier.competitors && dossier.competitors.length > 0
+      ? dossier.competitors
+      : norm.includes('kpmg')
+        ? [
+            { name: 'PwC', differentiator: "KPMG leans into a tighter, human-centric 'Together, For Better' culture and deep Microsoft Azure AI integration via KPMG Clara." },
+            { name: 'Deloitte', differentiator: 'KPMG maintains an integrated Audit-Tax-Advisory balance and agile mid-market growth focus via KPMG Enterprise.' },
+            { name: 'EY', differentiator: 'KPMG differentiates through cohesive multidisciplinary teaming paired with targeted ESG and regulatory transformation hubs.' }
+          ]
+        : norm.includes('pwc')
+          ? [
+              { name: 'Deloitte', differentiator: "PwC pairs world-leading assurance prestige with corporate strategy via Strategy& and 'The New Equation' framework." },
+              { name: 'KPMG', differentiator: 'PwC holds larger global advisory scale, early OpenAI/Harvey deployment in Tax & Legal, and the PwC Professional leadership model.' },
+              { name: 'EY', differentiator: 'PwC combines top FTSE/Fortune 500 audit penetration with high-margin Deals and transaction advisory.' }
+            ]
+          : [
+              { name: 'Direct Sector Leaders', differentiator: `${name} stands out through focused client execution, strong brand trust, and ongoing digital modernization.` },
+              { name: 'High-Growth Challengers', differentiator: `${name} pairs institutional reliability with structured graduate development and cross-functional exposure.` },
+              { name: 'Global Enterprises', differentiator: `${name} offers early-career candidates high ownership, rapid learning curves, and direct commercial impact.` }
+            ];
+
+  const coreValues = dossier.coreValues.map(v => ({
+    ...v,
+    starPrompt:
+      v.starPrompt ||
+      `Describe a specific situation where you demonstrated "${v.value}" while balancing competing priorities as a ${targetRole} candidate.`
+  }));
+
+  const redFlags =
+    dossier.redFlags && dossier.redFlags.length > 0
+      ? dossier.redFlags
+      : [
+          `Delivering a generic "Why ${name}?" response that could be applied unchanged to any competitor without citing real divisions or recent moves.`,
+          `Overlooking ${name}'s core values when ranking options in Situational Judgement assessments.`,
+          `Failing to prepare thoughtful, research-backed reverse questions for the interviewer.`
+        ];
+
+  const commonTraps =
+    dossier.assessmentStyle.commonTraps && dossier.assessmentStyle.commonTraps.length > 0
+      ? dossier.assessmentStyle.commonTraps
+      : [
+          'Spending excessive time on a single complex numerical table rather than pacing evenly across all questions.',
+          'Bringing external assumptions into Verbal Reasoning passages instead of relying strictly on provided text.',
+          'Answering Situational Judgement prompts intuitively instead of evaluating each option against official company values.'
+        ];
+
+  return {
+    ...dossier,
+    targetRole: dossier.targetRole || targetRole,
+    competitors,
+    coreValues,
+    redFlags,
+    assessmentStyle: {
+      ...dossier.assessmentStyle,
+      commonTraps,
+    },
+  };
+}
+
+export async function fetchFreshCompanyQuiz(
+  dossier: CompanyDossier,
+  previousQuestions: string[]
+): Promise<CompanyQuizQuestion[]> {
+  const response = await fetch('/api/company-quiz', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      company: dossier.companyName,
+      role: dossier.targetRole || 'Graduate Trainee / Analyst',
+      overview: dossier.overview,
+      values: dossier.coreValues,
+      developments: dossier.recentDevelopments,
+      previousQuestions,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate fresh company quiz questions.');
+  }
+
+  const data = await response.json();
+  if (Array.isArray(data.questions) && data.questions.length > 0) {
+    return data.questions;
+  }
+  throw new Error('No quiz questions returned.');
 }
 
 function getCuratedFallback(companyName: string): CompanyDossier {
